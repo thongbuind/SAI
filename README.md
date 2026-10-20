@@ -11,11 +11,11 @@
 
 ### Tokenizer
 
-Sử dụng thư viện **SentencePiece Unigram** với vocabulary 10.000 token. Tokenizer được huấn luyện trên dữ liệu tiếng Việt đã chuyển về chữ thường, giữ nguyên khoảng trắng và bật byte fallback để hạn chế token không xác định.
+Sử dụng thư viện **SentencePiece Unigram** với vocabulary 10.000 token dành riêng cho những tác vụ tiếng Việt. Tokenizer được huấn luyện trên dữ liệu đã chuyển về chữ thường, giữ nguyên khoảng trắng và bật byte fallback để hạn chế token không xác định.
 
 ### Embedding
 
-Mỗi token ID được ánh xạ thành một vector có kích thước `d_model` bằng `nn.Embedding`. Khác với Transformer trong bài báo *Attention Is All You Need*, vốn cộng sinusoidal positional encoding trực tiếp vào token embedding, SAI sử dụng **Rotary Positional Embedding (RoPE)**. RoPE mã hoá vị trí tương đối bằng cách xoay các vector query và key trong attention. Context tối đa của mô hình là 2.048 token.
+Mỗi token ID được ánh xạ thành một vector có kích thước `d_model` bằng `nn.Embedding`. Khác với Transformer trong bài báo *Attention Is All You Need*, vốn cộng sinusoidal positional encoding trực tiếp vào token embedding, SAI sử dụng **Rotary Positional Embedding (RoPE)**. RoPE mã hoá vị trí tương đối bằng cách xoay các vector query và key trong attention. Context tối đa của mô hình là 10.240 token.
 
 Trọng số của output language-model head được chia sẻ với ma trận embedding (weight tying). Cách này giảm số tham số và buộc biểu diễn đầu vào, đầu ra cùng nằm trong một không gian token.
 
@@ -56,7 +56,7 @@ Mặc định, mô hình sinh tối đa 200 token bằng beam search với 5 bea
 
 ## Tải mô hình và chạy thử
 
-Checkpoint hiện được phát hành là **SAI_35M** và **SAI_100M** tại [thongbuind trên Hugging Face](https://huggingface.co/thongbuind). Mô hình có thể được tải trực tiếp bằng thư viện Transformers.
+Checkpoint hiện được phát hành là **SAI_35M**,  **SAI_100M** và **SAI_375M** tại [thongbuind trên Hugging Face](https://huggingface.co/collections/thongbuind/sai). Mô hình có thể được tải trực tiếp bằng thư viện Transformers.
  
 ```bash
 pip install torch transformers accelerate sentencepiece
@@ -68,8 +68,7 @@ Ví dụ chạy thử:
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-
-model_id = "thongbuind/SAI_100M"
+model_id = "thongbuind/SAI_375M"
 
 tokenizer = AutoTokenizer.from_pretrained(
     model_id,
@@ -79,20 +78,26 @@ model = AutoModelForCausalLM.from_pretrained(
     model_id,
     trust_remote_code=True,
 )
+
 device = "cuda" if torch.cuda.is_available() else (
     "mps" if torch.backends.mps.is_available() else "cpu"
 )
 model = model.to(device).eval()
 
+messages = [
+    {
+        "role": "system",
+        "content": "Bạn là trợ lý trả lời ngắn gọn.",
+    },
+    {
+        "role": "user",
+        "content": "Trí tuệ nhân tạo là gì",
+    },
+]
+
 answer = model.generate(
-    "hướng dẫn tôi cách nấu cháo gà",
-    tokenizer,
-    max_new_tokens=200,
-    beam_size=5,
-    penalty=1.2,
-    no_repeat_ngram=3,
-    early_stop=False,
-    patience=30,
+    tokenizer=tokenizer,
+    messages=messages,
 )
 print(answer)
 ```
