@@ -1,0 +1,9 @@
+# Continued pretrain: dữ liệu mới + 3× số mẫu đó lấy ngẫu nhiên từ TOÀN BỘ pretrain (hành vi dev_2).
+kind: lm
+main: data/processed/continued_pretrain_data_ids.npz
+sub: data/processed/pretrain_manifest.json
+mix_ratio: 3
+mix_seed: 54
+train_ratio: 0.95
+val_ratio: 0.04
+split_seed: 54

@@ -1,7 +1,6 @@
 import asyncio
 import time
 from collections import defaultdict
-from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -11,6 +10,7 @@ from web.backend.analytics_middleware import AnalyticsMiddleware, init_db, log_m
 from web.backend.analytics_routes import router as analytics_router
 from web.backend.history_routes import router as history_router
 from web.backend.model_loader import load_model, generate_response, model_dir
+from web.backend.paths import FRONTEND_DIR
 
 app = FastAPI()
 
@@ -27,7 +27,6 @@ _queue: asyncio.Queue = None
 
 _last_request: dict[str, float] = defaultdict(float)
 RATE_LIMIT_SEC = 2.0
-frontend_dir = Path("web/frontend")
 
 def _count_tokens(tokenizer, text: str) -> int:
     try:
@@ -105,10 +104,13 @@ class ChatRequest(BaseModel):
 
 @app.get("/models")
 def list_models():
-    return {"models": list(models.keys()), "current": default_model_name}
+    return {"models": list(models.keys()), "default": default_model_name}
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
+    if not models:
+        # Không có model thì worker không được khởi động; trả lỗi ngay thay vì để request chờ mãi.
+        raise HTTPException(503, "Server chưa nạp được model nào.")
     if time.time() - _last_request[req.user_id] < RATE_LIMIT_SEC:
         raise HTTPException(429, "Gửi quá nhanh, thử lại sau.")
     _last_request[req.user_id] = time.time()
@@ -123,14 +125,18 @@ async def chat(req: ChatRequest):
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return FileResponse(frontend_dir / "index.html")
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_spa(full_path: str):
-    file = frontend_dir / full_path
-    if file.exists() and file.is_file():
+    # resolve() rồi kiểm tra vẫn nằm trong FRONTEND_DIR để "../" không đọc được file ngoài frontend
+    # (analytics.db, lịch sử chat, checkpoint...).
+    file = (FRONTEND_DIR / full_path).resolve()
+    if not file.is_relative_to(FRONTEND_DIR):
+        raise HTTPException(404, "Not found")
+    if file.is_file():
         return FileResponse(file)
-    index = frontend_dir / full_path / "index.html"
-    if index.exists():
+    index = file / "index.html"
+    if index.is_file():
         return FileResponse(index)
-    return FileResponse(frontend_dir / "index.html")
+    return FileResponse(FRONTEND_DIR / "index.html")

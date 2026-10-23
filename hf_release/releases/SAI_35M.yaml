@@ -1,0 +1,18 @@
+# Phát hành SAI 35M lên Hugging Face.
+repo_id: thongbuind/SAI_35M
+version: dev2                 # tag trên Hub; gắn git tag cùng tên cho commit đã export
+
+source:
+  # Checkpoint SFT1 của pipeline dev_2 (bản đang có trên Hub).
+  weights: model/sft1_35M.pt
+  model: SAI_35M
+
+card:
+  model_name: SAI_35M
+  example_messages:
+    - {role: system, content: "Bạn là trợ lý trả lời ngắn gọn."}
+    - {role: user, content: "Hướng dẫn tôi cách nấu cháo gà"}
+  language: [vi]
+  license: apache-2.0
+  tags: [custom-code, vietnamese, causal-lm]
+  base_model: [thongbuind/SAI_35M]

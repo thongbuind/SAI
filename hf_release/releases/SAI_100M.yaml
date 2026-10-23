@@ -1,0 +1,18 @@
+# Phát hành SAI 100M lên Hugging Face.
+repo_id: thongbuind/SAI_100M
+version: dev2                 # tag trên Hub; gắn git tag cùng tên cho commit đã export
+
+source:
+  # Checkpoint SFT1 của pipeline dev_2 (bản đang có trên Hub).
+  weights: model/sft1_100M.pt
+  model: SAI_100M
+
+card:
+  model_name: SAI_100M
+  example_messages:
+    - {role: system, content: "Bạn là trợ lý trả lời ngắn gọn."}
+    - {role: user, content: "giải đua formula 1 có gì hấp dẫn trong lòng người hâm mộ"}
+  language: [vi]
+  license: apache-2.0
+  tags: [custom-code, vietnamese, causal-lm]
+  base_model: [thongbuind/SAI_100M]

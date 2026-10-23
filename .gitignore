@@ -16,4 +16,12 @@ __pycache__/
 
 /model/
 
+# training lab
+/runs/
+.pytest_cache/
+
 /web/chat_history
+# dữ liệu người dùng của web (user_id, IP đã hash, user agent); -wal/-shm do SQLite WAL sinh ra
+/web/analytics.db*
+
+AGENTS.md

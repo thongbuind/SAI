@@ -1,0 +1,12 @@
+# dev_2 pipeline cho SAI 100M (config/100M.json: num_workers=4, freeze=[0, 1, 2]).
+extends: dev2_base.yaml
+model: SAI_100M
+runtime:
+  num_workers: 4
+pipeline:
+  sft1:
+    params:
+      freeze_blocks: [0, 1, 2]
+  sft2:
+    params:
+      freeze_blocks: [0, 1, 2]

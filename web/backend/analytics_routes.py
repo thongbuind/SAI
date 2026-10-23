@@ -1,14 +1,16 @@
 import os, sqlite3, time
-from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Query, Request
+from web.backend.paths import ANALYTICS_DB as DB_PATH
 
 router = APIRouter(prefix="/admin")
 
-DB_PATH = Path("web/analytics.db")
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "changeme")
+# Không có giá trị mặc định: quên đặt ADMIN_KEY thì trang admin bị tắt, không mở bằng một khoá ai cũng biết.
+ADMIN_KEY = os.environ.get("ADMIN_KEY")
 
 def _auth(request: Request):
+    if not ADMIN_KEY:
+        raise HTTPException(503, "Trang admin bị tắt: chưa đặt biến môi trường ADMIN_KEY")
     key = request.headers.get("X-Admin-Key") or request.query_params.get("admin_key")
     if key != ADMIN_KEY:
         raise HTTPException(401, "Unauthorized — set X-Admin-Key header")

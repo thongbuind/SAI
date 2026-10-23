@@ -1,0 +1,10 @@
+# SFT2: dữ liệu SFT2 + cùng số mẫu đó lấy ngẫu nhiên từ TOÀN BỘ SFT1 (hành vi dev_2).
+# Recipe sft với resample_per_epoch=true trộn lại mỗi epoch bằng mix_seed = số thứ tự epoch.
+kind: sft
+main: data/processed/SFT2_data_ids.npz
+sub: data/processed/SFT1_data_ids.npz
+mix_ratio: 1
+mix_seed: 54
+train_ratio: 0.95
+val_ratio: 0.04
+split_seed: 54

@@ -3,9 +3,9 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
+from web.backend.paths import HISTORY_DIR
 
 router = APIRouter()
-HISTORY_DIR = Path("web/chat_history")
 
 def _ensure_dir():
     HISTORY_DIR.mkdir(parents=True, exist_ok=True)

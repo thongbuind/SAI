@@ -1,82 +1,69 @@
-import sys
+"""Nạp model chính thức (``SAI/``) và tokenizer chính thức cho web chat.
+
+Checkpoint trong ``model/`` đặt tên ``<stage>_<size>.pt`` (vd. ``sft1_35M.pt``) và dùng config
+``config/models/sai_<size>.yaml``. Checkpoint là state_dict thuần (dev_2) hoặc checkpoint của lab.
+Web chỉ phụ thuộc ``SAI``, không import training lab.
+"""
+
 from pathlib import Path
-
-project_root = Path(__file__).resolve().parents[2]
-sys.path.append(str(project_root))
-
-import torch
-import json
 import sentencepiece as spm
-from src.model.TransformerModel import TransformerModel
+import torch
+import yaml
+from SAI.modeling import SAIConfig, SAIModel
+from web.backend.paths import MODEL_CONFIG_DIR, PROJECT_ROOT, TOKENIZER_MODEL
+
+OFFICIAL_FAMILY = "SAI"
 
 device = torch.device(
     "cuda" if torch.cuda.is_available()
     else "mps:0" if torch.backends.mps.is_available()
     else "cpu"
 )
-config_dir     = project_root / "config"
-tokenizer_file = project_root / "src" / "tokenizer" / "tokenizer.model"
-model_dir      = project_root / "model"
+model_dir = PROJECT_ROOT / "model"
 
-_tokenizer = None
+def model_config_name(model_file: Path) -> str:
+    """``sft1_35M.pt`` → ``SAI_35M`` (tên file trong ``config/models/``)."""
+    size = model_file.stem.rsplit("_", 1)[-1]
+    return f"SAI_{size}"
 
-def _resolve_config(model_name: str) -> dict:
-    stem     = Path(model_name).stem
-    size_key = stem.rsplit("_", 1)[-1]
+def load_model_config(name: str) -> SAIConfig:
+    """Đọc ``config/models/<name>.yaml`` của model chính thức thành ``SAIConfig``.
 
-    base_file = config_dir / "base.json"
-    size_file = config_dir / f"{size_key}.json"
+    Config chính thức là một file phẳng (``family: SAI``, không ``extends``); khoá thừa hoặc thiếu
+    làm ``SAIConfig`` báo lỗi ngay.
+    """
+    path = MODEL_CONFIG_DIR / f"{name}.yaml"
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    if data.get("family") != OFFICIAL_FAMILY or "extends" in data:
+        raise ValueError(f"{path}: web chỉ dùng config model chính thức (family: SAI, không extends)")
+    fields = {key: value for key, value in data.items() if key != "family"}
+    return SAIConfig(**fields)
 
-    if not base_file.exists():
-        raise FileNotFoundError(f"Config base không tìm thấy: {base_file}")
-    if not size_file.exists():
-        raise FileNotFoundError(
-            f"Config '{size_key}.json' không tìm thấy: {size_file}\n"
-            f"Tên model phải có dạng <name>_<size>.pt  (vd: sft_35M.pt)"
-        )
+def load_weights(model: SAIModel, model_file: Path):
+    state = torch.load(model_file, map_location=device)
+    # Checkpoint resume của lab bọc state_dict trong ``model_state_dict``; state_dict thuần (dev_2) dùng thẳng.
+    if "model_state_dict" in state:
+        state = state["model_state_dict"]
+    model.load_state_dict(state)
 
-    with open(base_file) as f:
-        config = json.load(f)
-    with open(size_file) as f:
-        config.update(json.load(f))
-
-    return config
-
-def load_model(model_file: Path):
-    global _tokenizer
-
-    config = _resolve_config(model_file.name)
-
-    if not tokenizer_file.exists():
-        raise FileNotFoundError(f"Tokenizer không tìm thấy: {tokenizer_file}")
-
-    _tokenizer = spm.SentencePieceProcessor()
-    _tokenizer.load(str(tokenizer_file))
-
-    model = TransformerModel(
-        config["vocab_size"],
-        config["d_model"],
-        config["num_heads"],
-        config["num_kv_heads"],
-        config["num_layers"],
-        config["ff_dim"],
-        config["max_seq_len"],
-        config["dropout"],
-    )
-
+def load_model(model_file: Path) -> tuple[SAIModel, spm.SentencePieceProcessor]:
     if not model_file.exists():
         raise FileNotFoundError(f"Model file không tìm thấy: {model_file}")
+    if not TOKENIZER_MODEL.exists():
+        raise FileNotFoundError(f"Tokenizer không tìm thấy: {TOKENIZER_MODEL}")
 
-    state_dict = torch.load(model_file, map_location=device)
-    model.load_state_dict(state_dict)
+    config = load_model_config(model_config_name(model_file))
+    model = SAIModel(config)
+    load_weights(model, model_file)
     model.to(device)
     model.eval()
 
     params = sum(p.numel() for p in model.parameters())
     print(f"Model loaded ({model_file.name}). Params: {params:,}")
 
-    return model, _tokenizer
+    tokenizer = spm.SentencePieceProcessor(model_file=str(TOKENIZER_MODEL))
+    return model, tokenizer
 
-def generate_response(model, tokenizer, user_input):
-    tok = tokenizer if tokenizer is not None else _tokenizer
-    return model.generate_response(user_input, tok)
+def generate_response(model: SAIModel, tokenizer: spm.SentencePieceProcessor, user_input: str) -> str:
+    return model.generate_response(user_input, tokenizer)

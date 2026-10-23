@@ -1,0 +1,6 @@
+# Pretrain: các shard pretrain_data_00X_ids.npz do `python -m foundation_lab encode pretrain` sinh ra.
+kind: lm
+main: data/processed/pretrain_manifest.json
+train_ratio: 0.95
+val_ratio: 0.04
+split_seed: 54

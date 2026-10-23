@@ -1,0 +1,15 @@
+{
+  "add_bos_token": false,
+  "add_eos_token": false,
+  "additional_special_tokens": ["<|im_start|>", "<|im_end|>"],
+  "auto_map": {
+    "AutoTokenizer": ["tokenization_SAI.SAITokenizer", null]
+  },
+  "bos_token": "[BOS]",
+  "clean_up_tokenization_spaces": false,
+  "eos_token": "[EOS]",
+  "model_max_length": 2048,
+  "pad_token": "[UNK]",
+  "tokenizer_class": "SAITokenizer",
+  "unk_token": "[UNK]"
+}

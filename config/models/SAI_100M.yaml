@@ -1,0 +1,10 @@
+# SAI 100M — giá trị từ config/base.json + config/100M.json của dev_2.
+family: SAI              # model chính thức: SAI/modeling.py
+vocab_size: 10000
+max_seq_len: 10240
+d_model: 768
+num_heads: 12
+num_kv_heads: 6
+num_layers: 12
+ff_dim: 3072
+dropout: 0.05

@@ -1,0 +1,18 @@
+# Phát hành SAI 375M lên Hugging Face.
+repo_id: thongbuind/SAI_375M
+version: dev2                 # tag trên Hub; gắn git tag cùng tên cho commit đã export
+
+source:
+  # Checkpoint SFT1 của pipeline dev_2 (bản đang có trên Hub).
+  weights: model/sft1_375M.pt
+  model: SAI_375M
+
+card:
+  model_name: SAI_375M
+  example_messages:
+    - {role: system, content: "Bạn là trợ lý trả lời ngắn gọn."}
+    - {role: user, content: "Trí tuệ nhân tạo là gì"}
+  language: [vi]
+  license: apache-2.0
+  tags: [custom-code, vietnamese, causal-lm]
+  base_model: [thongbuind/SAI_375M]

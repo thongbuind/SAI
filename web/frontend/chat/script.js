@@ -1,4 +1,5 @@
-const API = "http://127.0.0.1:8000"
+// Frontend và API chạy cùng một server nên gọi API theo đường dẫn tương đối.
+const API = ""
 
 function getOrCreateUserId() {
   let uid = localStorage.getItem("sai_user_id")

@@ -1,0 +1,6 @@
+# SFT1: hội thoại có loss mask (chỉ phần trả lời của model + EOS chịu loss).
+kind: sft
+main: data/processed/SFT1_data_ids.npz
+train_ratio: 0.95
+val_ratio: 0.04
+split_seed: 54

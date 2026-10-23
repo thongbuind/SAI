@@ -2,3 +2,5 @@ fastapi
 uvicorn
 torch
 pydantic
+sentencepiece
+pyyaml

@@ -1,12 +1,10 @@
 import time, json, sqlite3, hashlib, asyncio
-from pathlib import Path
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 from datetime import datetime, timezone
-
-DB_PATH = Path("web/analytics.db")
+from web.backend.paths import ANALYTICS_DB as DB_PATH
 
 def _get_conn() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)

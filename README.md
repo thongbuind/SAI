@@ -1,4 +1,4 @@
-# SAI — Mô hình ngôn ngữ **decoder-only Transformer** thuần Việt
+# SAI - Mô hình ngôn ngữ **decoder-only Transformer** thuần Việt
 
 ## Kiến trúc mô hình
 
@@ -7,7 +7,6 @@
 | 35M | 512 | 8 | 8 | 8 | 2.048 |
 | 100M | 768 | 12 | 6 | 12 | 3.072 |
 | 375M | 1.024 | 16 | 4 | 24 | 4.096 |
-| 500M | 1.024 | 16 | 8 | 32 | 4.096 |
 
 ### Tokenizer
 
@@ -25,7 +24,7 @@ Query, key và value được chiếu qua một lớp tuyến tính gộp không
 
 - Cấu hình 35M có 8 query head và 8 KV head (tương đương Multi-Head Attention).
 - Cấu hình 100M có 12 query head và 6 KV head.
-- Cấu hình 500M có 16 query head và 8 KV head.
+- Cấu hình 375M có 16 query head và 4 KV head.
 
 Attention được tính bằng `scaled_dot_product_attention` của PyTorch, cho phép tự chọn cuDNN Attention, Flash Attention, memory-efficient attention hoặc math backend phù hợp. Causal mask ngăn mô hình nhìn thấy token tương lai; padding mask loại bỏ token đệm khi huấn luyện.
 
@@ -56,7 +55,7 @@ Mặc định, mô hình sinh tối đa 200 token bằng beam search với 5 bea
 
 ## Tải mô hình và chạy thử
 
-Checkpoint hiện được phát hành là **SAI_35M**,  **SAI_100M** và **SAI_375M** tại [thongbuind trên Hugging Face](https://huggingface.co/collections/thongbuind/sai). Mô hình có thể được tải trực tiếp bằng thư viện Transformers.
+Checkpoint hiện được phát hành là **SAI_35M**, **SAI_100M** và **SAI_375M** tại [thongbuind trên Hugging Face](https://huggingface.co/collections/thongbuind/sai). Mô hình có thể được tải trực tiếp bằng thư viện Transformers.
  
 ```bash
 pip install torch transformers accelerate sentencepiece
