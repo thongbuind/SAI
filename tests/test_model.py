@@ -46,6 +46,28 @@ def test_right_padding_does_not_change_real_tokens(tiny_model):
         a, b = tiny_model(ids), tiny_model(padded)
     torch.testing.assert_close(a, b[:, :10], atol=1e-5, rtol=1e-5)
 
+@pytest.mark.parametrize("side", ["left", "right"])
+def test_explicit_padding_and_cache_match_unpadded_sequence(tiny_model, side):
+    ids = torch.randint(3, 64, (1, 8))
+    padding = torch.zeros((1, 3), dtype=torch.long)
+    padded = torch.cat((padding, ids), dim=1) if side == "left" else torch.cat((ids, padding), dim=1)
+    mask = padded.ne(0).long()
+    real_slice = slice(3, None) if side == "left" else slice(None, 8)
+    with torch.no_grad():
+        expected = tiny_model(ids)
+        actual = tiny_model(padded, attention_mask=mask)
+        torch.testing.assert_close(expected, actual[:, real_slice], atol=1e-5, rtol=1e-5)
+        _, cache = tiny_model.forward_cached(padded, attention_mask=mask)
+        next_ids = torch.tensor([[17, 18]])
+        extended_mask = torch.cat((mask, torch.ones_like(next_ids)), dim=1)
+        decoded, _ = tiny_model.forward_cached(next_ids, attention_mask=extended_mask, past_key_values=cache)
+        expected = tiny_model(torch.cat((ids, next_ids), dim=1))[:, -2:]
+        torch.testing.assert_close(expected, decoded, atol=1e-5, rtol=1e-5)
+
+def test_invalid_padding_mask_is_rejected(tiny_model):
+    with pytest.raises(ValueError, match="ít nhất một token"):
+        tiny_model(torch.zeros((1, 3), dtype=torch.long), attention_mask=torch.zeros((1, 3)))
+
 def test_weight_tying_and_dev2_state_dict_keys(tiny_model):
     assert tiny_model.lm_head.weight is tiny_model.embed.weight
     keys = set(tiny_model.state_dict())

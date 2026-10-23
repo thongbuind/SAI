@@ -30,7 +30,6 @@ class ModelCardSpec:
 @dataclass
 class ReleaseSpec:
     repo_id: str                    # vd. thongbuind/SAI_35M
-    version: str                    # tag trên Hub, khớp git tag, vd. v1.0
     source: ReleaseSource
     card: ModelCardSpec
 

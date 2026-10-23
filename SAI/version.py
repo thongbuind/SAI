@@ -7,11 +7,10 @@ Mỗi file thành phần trong ``SAI/`` có hằng ``VERSION`` dạng ``devX.Y.Z
   làm output khác); khi Y tăng thì Z về 0.
 - Z: tăng 1 khi thay đổi không cần train lại (vd. kernel nhanh hơn cho cùng output, sửa generate).
 
-Khi sửa một thành phần, phiên bản mới của nó = ``MODEL_VERSION`` hiện tại + bậc tương ứng, không
-tính từ phiên bản cũ của riêng thành phần đó. Nhờ vậy thành phần vừa sửa luôn có phiên bản lớn nhất
-và ``MODEL_VERSION`` (phiên bản lớn nhất trong các thành phần) bằng phiên bản của nó. Ví dụ:
-dev3.0.0 → sửa kernel attention → attention dev3.0.1 → đổi FFN → ffn dev3.1.0 → sửa generate →
-generate dev3.1.1; phiên bản mô hình lần lượt là dev3.0.1, dev3.1.0, dev3.1.1.
+``MODEL_VERSION`` là phiên bản phát hành chung, kể cả thay đổi adapter hoặc đóng gói HF.
+Thành phần được sửa nhận phiên bản phát hành mới; thành phần không đổi giữ phiên bản cũ.
+Mọi thành phần phải cùng giai đoạn và không lớn hơn phiên bản phát hành. Kiểm tra được gọi
+tường minh trước khi export, không phát sinh thao tác kiểm tra khi import.
 """
 
 import re
@@ -50,4 +49,12 @@ COMPONENT_VERSIONS = {
     "generate": GENERATE_VERSION,
     "tokenizer": TOKENIZER_VERSION,
 }
-MODEL_VERSION = latest_version(COMPONENT_VERSIONS.values())
+MODEL_VERSION = "dev3.0.1"
+
+def validate_versions() -> None:
+    """Kiểm tra quan hệ giữa phiên bản phát hành và các thành phần."""
+    release = parse_version(MODEL_VERSION)
+    for name, version in COMPONENT_VERSIONS.items():
+        component = parse_version(version)
+        if component[0] != release[0] or component > release:
+            raise ValueError(f"{name}: {version} không tương thích phiên bản phát hành {MODEL_VERSION}")

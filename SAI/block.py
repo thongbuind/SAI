@@ -2,7 +2,7 @@ import torch.nn as nn
 from .attention import GroupedQueryAttention
 from .ffn import SwiGLU
 
-VERSION = "dev3.0.0"
+VERSION = "dev3.0.1"
 
 class DecoderBlock(nn.Module):
     def __init__(self, d_model: int, num_heads: int, num_kv_heads: int, ff_dim: int, dropout: float):
@@ -18,13 +18,13 @@ class DecoderBlock(nn.Module):
         x = x + self.drop(self.ffn(self.norm2(x)))
         return x
 
-    def prefill(self, x, cos, sin):
-        attn, kv = self.gqa.prefill(self.norm1(x), cos, sin)
+    def prefill(self, x, cos, sin, attn_mask=None, past_kv=None):
+        attn, kv = self.gqa.prefill(self.norm1(x), cos, sin, attn_mask, past_kv)
         x = x + self.drop(attn)
         x = x + self.drop(self.ffn(self.norm2(x)))
         return x, list(kv)
 
-    def forward_with_cache(self, x, kv, cache_len: int, cos, sin):
-        x = x + self.drop(self.gqa.forward_with_cache(self.norm1(x), kv, cache_len, cos, sin))
+    def forward_with_cache(self, x, kv, cache_len: int, cos, sin, attn_mask=None):
+        x = x + self.drop(self.gqa.forward_with_cache(self.norm1(x), kv, cache_len, cos, sin, attn_mask))
         x = x + self.drop(self.ffn(self.norm2(x)))
         return x

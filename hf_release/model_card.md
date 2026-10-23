@@ -6,19 +6,15 @@ $front_matter
 
 ## Kiến trúc mô hình
 
-| Cấu hình | `d_model` | Attention heads | KV heads | Layers | FFN dimension |
-|---|---:|---:|---:|---:|---:|
-| 35M | 512 | 8 | 8 | 8 | 2.048 |
-| 100M | 768 | 12 | 6 | 12 | 3.072 |
-| 375M | 1.024 | 16 | 4 | 24 | 4.096 |
+$architecture_table
 
 ### Tokenizer
 
-Sử dụng thư viện **SentencePiece Unigram** với vocabulary 10.000 token. Tokenizer được huấn luyện trên dữ liệu tiếng Việt đã chuyển về chữ thường, giữ nguyên khoảng trắng và bật byte fallback để hạn chế token không xác định.
+Sử dụng thư viện **SentencePiece Unigram** với vocabulary $vocab_size token. Tokenizer được huấn luyện trên dữ liệu tiếng Việt đã chuyển về chữ thường, giữ nguyên khoảng trắng và bật byte fallback để hạn chế token không xác định.
 
 ### Embedding
 
-Mỗi token ID được ánh xạ thành một vector có kích thước `d_model` bằng `nn.Embedding`. Khác với Transformer trong bài báo *Attention Is All You Need*, vốn cộng sinusoidal positional encoding trực tiếp vào token embedding, SAI sử dụng **Rotary Positional Embedding (RoPE)**. RoPE mã hoá vị trí tương đối bằng cách xoay các vector query và key trong attention. Context tối đa của mô hình là 10.240 token.
+Mỗi token ID được ánh xạ thành một vector có kích thước `d_model` bằng `nn.Embedding`. Khác với Transformer trong bài báo *Attention Is All You Need*, vốn cộng sinusoidal positional encoding trực tiếp vào token embedding, SAI sử dụng **Rotary Positional Embedding (RoPE)**. RoPE mã hoá vị trí tương đối bằng cách xoay các vector query và key trong attention. Context tối đa của mô hình là $max_seq_len token.
 
 Trọng số của output language-model head được chia sẻ với ma trận embedding (weight tying). Cách này giảm số tham số và buộc biểu diễn đầu vào, đầu ra cùng nằm trong một không gian token.
 
@@ -26,9 +22,7 @@ Trọng số của output language-model head được chia sẻ với ma trận
 
 Query, key và value được chiếu qua một lớp tuyến tính gộp không dùng bias. Nhiều query head có thể dùng chung một cặp key/value head, nhờ đó giảm kích thước KV cache so với Multi-Head Attention thông thường.
 
-- Cấu hình 35M có 8 query head và 8 KV head (tương đương Multi-Head Attention).
-- Cấu hình 100M có 12 query head và 6 KV head.
-- Cấu hình 500M có 16 query head và 8 KV head.
+Số query head và KV head của bản phát hành được lấy trực tiếp từ config trong bảng trên.
 
 Attention được tính bằng `scaled_dot_product_attention` của PyTorch, cho phép tự chọn cuDNN Attention, Flash Attention, memory-efficient attention hoặc math backend phù hợp. Causal mask ngăn mô hình nhìn thấy token tương lai; padding mask loại bỏ token đệm khi huấn luyện.
 
@@ -64,7 +58,7 @@ $release_table
 ## Tải mô hình và chạy thử
 
 ```bash
-pip install torch transformers accelerate sentencepiece
+pip install $runtime_requirements
 ```
 
 Ví dụ chạy thử:
@@ -79,10 +73,12 @@ model_id = "$repo_id"
 tokenizer = AutoTokenizer.from_pretrained(
     model_id,
     trust_remote_code=True,
+    revision="$version",
 )
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     trust_remote_code=True,
+    revision="$version",
 )
 
 device = "cuda" if torch.cuda.is_available() else (
@@ -92,9 +88,23 @@ model = model.to(device).eval()
 
 messages = $example_messages
 
-answer = model.generate(
+answer = model.generate_response(
     tokenizer=tokenizer,
     messages=messages,
 )
 print(answer)
 ```
+
+`generate_response()` dùng thuật toán hội thoại của SAI. `generate()` nhận tensor token ID
+và trả về token ID theo giao diện Transformers:
+
+```python
+inputs = tokenizer("xin chào", return_tensors="pt").to(device)
+outputs = model.generate(**inputs, max_new_tokens=32, do_sample=False)
+print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+```
+
+Adapter hỗ trợ `DynamicCache`, padding trái/phải trong forward và padding trái khi sinh theo batch.
+Các tuỳ chọn trả attention, hidden state trung gian và các loại cache khác chưa được hỗ trợ.
+`release_manifest.json` ghi hash nội dung cùng phiên bản thư viện dùng lúc export;
+báo cáo verify local ghi môi trường thực tế và kết quả kiểm chứng.

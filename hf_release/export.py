@@ -7,27 +7,30 @@ Thư mục export chỉ gồm những gì người dùng cần để tải và c
   ``tokenization_SAI.py``, ``tokenizer_config.json``           bản copy của ``hf_release/adapter/``
 - ``tokenizer.model``                                          tokenizer
 - ``README.md``                                                model card sinh từ ``hf_release/model_card.md``
-và ``release.json`` (manifest: spec, git commit lúc export, sha256 từng file) chỉ giữ trên máy, không upload.
+``release_manifest.json`` chứa phiên bản, nguồn commit và SHA-256 công khai.
+``release.json`` chứa spec và lineage đầy đủ, chỉ giữ local.
 
 Mọi file code trên Hub đều là bản copy được sinh ra ở đây; không sửa tay trong thư mục export.
 """
 
-import importlib.util
 import json
 import shutil
 from dataclasses import asdict, dataclass
+from importlib.metadata import version
 from pathlib import Path
 from string import Template
 import torch
 import yaml
 from SAI.modeling import SAIConfig, SAIModel
-from SAI.version import COMPONENT_VERSIONS, MODEL_VERSION
+from SAI.version import COMPONENT_VERSIONS, MODEL_VERSION, validate_versions
 from foundation_lab.architecture import official_model_config
 from foundation_lab.paths import PROJECT_ROOT, RUNS_DIR, TOKENIZER_MODEL, resolve_project_path
 from foundation_lab.state.lineage import git_info, sha256_file
 from foundation_lab.state.run import RunDir
 from hf_release.checkpoint import save_safetensors
 from hf_release.spec import ReleaseSpec, load_release_spec
+from hf_release.adapter.configuration_SAI import SAIConfig as HFConfig
+from hf_release.artifact import MANIFEST_FILE, SCHEMA_VERSION, payload_files, write_json
 
 HF_DIR = Path(__file__).resolve().parent
 ADAPTER_DIR = HF_DIR / "adapter"
@@ -42,7 +45,6 @@ CORE_FILES = {
 }
 ADAPTER_SUFFIXES = {".py", ".json"}      # tránh copy file rác của hệ điều hành (.DS_Store...) lên Hub
 TOKENIZER_FILE = "tokenizer.model"
-MANIFEST_FILE = "release.json"
 AUTO_MAP = {
     "AutoConfig": "configuration_SAI.SAIConfig",
     "AutoModelForCausalLM": "modeling_SAI.SAIForCausalLM",
@@ -89,18 +91,16 @@ def _load_weights(model: SAIModel, path: Path):
 
 def _write_config(model_config: SAIConfig, out_dir: Path):
     """Ghi config.json bằng chính class SAIConfig của adapter để khoá khớp với lúc tải."""
-    module_spec = importlib.util.spec_from_file_location("hf_release_configuration", ADAPTER_DIR / "configuration_SAI.py")
-    module = importlib.util.module_from_spec(module_spec)
-    module_spec.loader.exec_module(module)
-    config = module.SAIConfig(**asdict(model_config))
+    config = HFConfig.from_core_config(model_config, version=MODEL_VERSION, component_versions=COMPONENT_VERSIONS)
+    if config.to_core_config(SAIConfig) != model_config:
+        raise ValueError("Chuyển config qua adapter không bảo toàn config model")
     config.architectures = ["SAIForCausalLM"]
     config.auto_map = dict(AUTO_MAP)
     config.save_pretrained(out_dir)
 
-def _release_table(spec: ReleaseSpec, source: ResolvedSource, num_params: int, git: dict) -> str:
+def _release_table(source: ResolvedSource, num_params: int, git: dict) -> str:
     rows = [
-        ("Phiên bản", f"`{spec.version}`"),
-        ("Phiên bản mô hình", f"`{MODEL_VERSION}`"),
+        ("Phiên bản", f"`{MODEL_VERSION}`"),
         ("Số tham số", f"{num_params:,}"),
         ("Nguồn trọng số", source.description),
         ("Git commit lúc export", f"`{git['commit']}`" + (" (có thay đổi chưa commit)" if git["dirty"] else "")),
@@ -141,16 +141,26 @@ def _render_card(spec: ReleaseSpec, source: ResolvedSource, num_params: int, git
     template = Template(CARD_TEMPLATE.read_text(encoding="utf-8"))
     return template.substitute(
         front_matter=yaml.safe_dump(front_matter, sort_keys=False, allow_unicode=True).strip(),
-        release_table=_release_table(spec, source, num_params, git),
+        release_table=_release_table(source, num_params, git),
         repo_id=spec.repo_id,
+        version=MODEL_VERSION,
+        vocab_size=source.model_config.vocab_size,
+        max_seq_len=source.model_config.max_seq_len,
         example_messages=_format_messages(card.example_messages),
+        architecture_table="\n".join([
+            "| Model | d_model | Query heads | KV heads | Layers | FFN |",
+            "|---|---:|---:|---:|---:|---:|",
+            f"| {card.model_name} | {source.model_config.d_model} | {source.model_config.num_heads} | {source.model_config.num_kv_heads} | {source.model_config.num_layers} | {source.model_config.ff_dim} |",
+        ]),
+        runtime_requirements=" ".join(f"{name}=={version(name)}" for name in ("torch", "transformers", "sentencepiece", "safetensors", "huggingface_hub")),
     )
 
 def export_release(spec_path, out_dir=None) -> Path:
     spec_path = Path(spec_path)
+    validate_versions()
     spec = load_release_spec(spec_path)
     source = resolve_source(spec)
-    out_dir = Path(out_dir) if out_dir is not None else EXPORT_ROOT / spec_path.stem / spec.version
+    out_dir = Path(out_dir) if out_dir is not None else EXPORT_ROOT / spec_path.stem / MODEL_VERSION
     if out_dir.exists():
         raise FileExistsError(f"{out_dir} đã tồn tại; không ghi đè bản export cũ")
 
@@ -167,20 +177,24 @@ def export_release(spec_path, out_dir=None) -> Path:
             shutil.copyfile(path, out_dir / path.name)
     for name, path in CORE_FILES.items():
         shutil.copyfile(path, out_dir / name)
+    tokenizer_config = json.loads((out_dir / "tokenizer_config.json").read_text(encoding="utf-8"))
+    tokenizer_config["model_max_length"] = source.model_config.max_seq_len
+    write_json(out_dir / "tokenizer_config.json", tokenizer_config)
     shutil.copyfile(TOKENIZER_MODEL, out_dir / TOKENIZER_FILE)
     (out_dir / "README.md").write_text(_render_card(spec, source, num_params, git), encoding="utf-8")
 
-    files = sorted(p.name for p in out_dir.iterdir() if p.is_file())
+    files = payload_files(out_dir)
     manifest = {
+        "schema_version": SCHEMA_VERSION,
         "repo_id": spec.repo_id,
-        "version": spec.version,
-        "spec": asdict(spec),
-        "model_version": MODEL_VERSION,
+        "version": MODEL_VERSION,
+        "model_config": asdict(source.model_config),
         "component_versions": COMPONENT_VERSIONS,
         "num_params": num_params,
-        "git": git,
+        "git": {"commit": git["commit"], "dirty": git["dirty"]},
+        "dependencies": {name: version(name) for name in ("torch", "transformers", "huggingface_hub", "safetensors", "sentencepiece")},
         "files": {name: sha256_file(out_dir / name) for name in files},
     }
-    with open(out_dir / MANIFEST_FILE, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+    write_json(out_dir / MANIFEST_FILE, manifest)
+    write_json(out_dir / "release.json", {"spec": asdict(spec), "git": git})
     return out_dir

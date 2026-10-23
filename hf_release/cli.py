@@ -1,9 +1,11 @@
 """Dòng lệnh quản lý Hugging Face.
 
     python -m hf_release export hf_release/releases/SAI_35M.yaml
-    python -m hf_release verify runs/releases/SAI_35M/v1.0
-    python -m hf_release push   runs/releases/SAI_35M/v1.0            # chỉ xem kế hoạch
-    python -m hf_release push   runs/releases/SAI_35M/v1.0 --confirm  # push thật (phải gõ xác nhận)
+    python -m hf_release verify runs/releases/SAI_35M/dev3.0.1
+    python -m hf_release push   runs/releases/SAI_35M/dev3.0.1            # lưu kế hoạch để duyệt
+    python -m hf_release push   runs/releases/SAI_35M/dev3.0.1 --confirm  # cần export từ commit sạch
+
+Đường dẫn phiên bản lấy từ kết quả export, không khai báo version trong YAML.
 """
 
 import argparse

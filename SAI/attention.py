@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn.attention import sdpa_kernel, SDPBackend
 from .rope import RotaryPositionalEmbedding
 
-VERSION = "dev3.0.0"
+VERSION = "dev3.0.1"
 
 _SDPA_BACKENDS = [
     SDPBackend.FLASH_ATTENTION,
@@ -64,8 +64,8 @@ class GroupedQueryAttention(nn.Module):
             )
         return self._merge(out)
 
-    def prefill(self, x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor):
-        """Xử lý cả prompt một lần; trả về output và (k, v) để đưa vào KV cache."""
+    def prefill(self, x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor, attn_mask=None, past_kv=None):
+        """Xử lý một đoạn mới; nối cache cũ và trả về cache đầy đủ (B, H_kv, T, D)."""
         q, k, v = self._project_qkv(x)
 
         q = RotaryPositionalEmbedding.apply_rope(q, cos, sin)
@@ -75,11 +75,18 @@ class GroupedQueryAttention(nn.Module):
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
 
+        if past_kv is not None:
+            k = torch.cat((past_kv[0], k), dim=2)
+            v = torch.cat((past_kv[1], v), dim=2)
+        dropout_p = self.dropout_rate if self.training else 0.0
         with sdpa_kernel(_SDPA_BACKENDS):
-            out = F.scaled_dot_product_attention(q, k, v, is_causal=True, enable_gqa=True)
+            out = F.scaled_dot_product_attention(
+                q, k, v, attn_mask=attn_mask, is_causal=(attn_mask is None and past_kv is None),
+                dropout_p=dropout_p, enable_gqa=True,
+            )
         return self._merge(out), (k, v)
 
-    def forward_with_cache(self, x: torch.Tensor, past_kv, cache_len: int, cos: torch.Tensor, sin: torch.Tensor):
+    def forward_with_cache(self, x: torch.Tensor, past_kv, cache_len: int, cos: torch.Tensor, sin: torch.Tensor, attn_mask=None):
         """Xử lý token mới: ghi k, v vào cache tại ``cache_len`` rồi attend tới toàn bộ cache."""
         B, T, _ = x.shape
         q, k, v = self._project_qkv(x)
@@ -98,5 +105,5 @@ class GroupedQueryAttention(nn.Module):
         v_full = past_kv[1][:B, :, :cache_len + T, :]
 
         with sdpa_kernel(_SDPA_BACKENDS):
-            out = F.scaled_dot_product_attention(q, k_full, v_full, is_causal=False, enable_gqa=True)
+            out = F.scaled_dot_product_attention(q, k_full, v_full, attn_mask=attn_mask, is_causal=False, enable_gqa=True)
         return self._merge(out)

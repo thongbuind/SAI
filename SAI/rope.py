@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-VERSION = "dev3.0.0"
+VERSION = "dev3.0.1"
 
 class RotaryPositionalEmbedding(nn.Module):
     """RoPE: mã hoá vị trí bằng cách xoay từng cặp chiều của query/key theo góc tỉ lệ với vị trí."""
@@ -22,9 +22,14 @@ class RotaryPositionalEmbedding(nn.Module):
         self.register_buffer("cos_cached", emb.cos(), persistent=False)
         self.register_buffer("sin_cached", emb.sin(), persistent=False)
 
-    def get_cos_sin(self, positions: torch.Tensor):
-        cos = self.cos_cached[positions][None, :, None, :]
-        sin = self.sin_cached[positions][None, :, None, :]
+    def get_cos_sin(self, positions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Nhận vị trí (T,) hoặc (B, T); trả về cache broadcast với Q/K (B, T, H, D)."""
+        if positions.ndim == 1:
+            positions = positions.unsqueeze(0)
+        if positions.ndim != 2:
+            raise ValueError("positions phải có shape (T,) hoặc (B, T)")
+        cos = self.cos_cached[positions].unsqueeze(2)
+        sin = self.sin_cached[positions].unsqueeze(2)
         return cos, sin
 
     @staticmethod

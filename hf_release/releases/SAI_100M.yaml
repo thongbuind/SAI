@@ -1,6 +1,5 @@
 # Phát hành SAI 100M lên Hugging Face.
 repo_id: thongbuind/SAI_100M
-version: dev2                 # tag trên Hub; gắn git tag cùng tên cho commit đã export
 
 source:
   # Checkpoint SFT1 của pipeline dev_2 (bản đang có trên Hub).
