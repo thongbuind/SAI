@@ -2,7 +2,7 @@
 
 Nguồn trọng số là MỘT trong hai dạng:
 - ``run`` + ``stage``: best.pt của một stage trong thư mục run của lab (có đủ config và lineage).
-- ``weights`` + ``model``: một file state_dict bất kỳ (vd. checkpoint dev_2) cùng config model của nó.
+- ``weights`` + ``model``: một file state_dict bất kỳ (vd. ``model/sft1_35M.pt``) cùng config model của nó.
 """
 
 from dataclasses import dataclass, field
@@ -13,7 +13,7 @@ EXAMPLE_MESSAGE_ROLES = ("system", "user", "model")
 
 @dataclass
 class ReleaseSource:
-    run: str | None = None          # thư mục run, vd. runs/dev2_35M/20261021-120000
+    run: str | None = None          # thư mục run, vd. runs/SAI_35M/20261021-120000
     stage: str | None = None        # stage lấy best.pt, vd. sft2
     weights: str | None = None      # file .pt (state_dict)
     model: str | dict | None = None # tên file trong config/models/ hoặc mapping config model

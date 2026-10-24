@@ -12,12 +12,10 @@ from hf_release.artifact import (
 
 HUB_MANAGED_FILES = {".gitattributes"}
 
-
 def plan_file_changes(local_files, remote_files) -> tuple[list[str], list[str]]:
     upload = sorted(set(local_files))
     delete = sorted(set(remote_files) - set(local_files) - HUB_MANAGED_FILES)
     return upload, delete
-
 
 def _git_blob_id(path: Path) -> str:
     digest = hashlib.sha1(f"blob {path.stat().st_size}\0".encode())
@@ -25,7 +23,6 @@ def _git_blob_id(path: Path) -> str:
         for block in iter(lambda: stream.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
-
 
 def _verify_remote(api, repo_id: str, commit: str, folder: Path, manifest: dict) -> None:
     """Đối chiếu metadata nội dung tại commit cố định, không tải lại trọng số lớn."""
@@ -45,10 +42,11 @@ def _verify_remote(api, repo_id: str, commit: str, folder: Path, manifest: dict)
         if not matches:
             raise RuntimeError(f"Nội dung file trên Hub không khớp: {name}")
 
-
 def _tag_commit(api, repo_id: str, version: str) -> str | None:
-    return next((tag.target_commit for tag in api.list_repo_refs(repo_id).tags if tag.name == version), None)
-
+    if not any(tag.name == version for tag in api.list_repo_refs(repo_id).tags):
+        return None
+    # Annotated tag có object SHA riêng; resolve revision để lấy commit chứa nội dung.
+    return api.model_info(repo_id, revision=version).sha
 
 def push_release(export_dir, *, confirm: bool = False, create_repo: bool = False, api=None) -> dict:
     """Xem trước hoặc phát hành. Client có thể truyền vào để test không cần mạng/token."""

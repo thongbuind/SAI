@@ -216,12 +216,13 @@ def test_manifest_cannot_omit_a_component_from_snapshot(verified_release):
 class FakeHub:
     """Hub tí hon trong RAM; mô phỏng commit cha, metadata nội dung và lỗi khi gắn tag."""
 
-    def __init__(self):
+    def __init__(self, annotated_tags=True):
         self.head = "base"
         self.snapshots = {self.head: {".gitattributes": b"", "old.py": b"# Ban cu\n"}}
         self.tags = {}
         self.commits = 0
         self.fail_tag_once = False
+        self.annotated_tags = annotated_tags
 
     def whoami(self):
         return {"name": "tester"}
@@ -242,7 +243,9 @@ class FakeHub:
         return list(self.snapshots[revision or self.head])
 
     def list_repo_refs(self, repo_id):
-        return SimpleNamespace(tags=[SimpleNamespace(name=name, target_commit=commit) for name, commit in self.tags.items()])
+        return SimpleNamespace(tags=[SimpleNamespace(
+            name=name, target_commit=f"tag-object-{commit}" if self.annotated_tags else commit,
+        ) for name, commit in self.tags.items()])
 
     def create_commit(self, *, repo_id, operations, revision, parent_commit, commit_message, commit_description):
         from huggingface_hub import CommitOperationAdd
@@ -268,11 +271,12 @@ class FakeHub:
         self.tags[tag] = revision
 
 
-def test_publish_version_matches_sai_and_tag_and_is_idempotent(verified_release, monkeypatch):
+@pytest.mark.parametrize("annotated_tags", [False, True])
+def test_publish_version_matches_sai_and_tag_and_is_idempotent(verified_release, monkeypatch, annotated_tags):
     from hf_release.push import push_release
     import SAI
 
-    api = FakeHub()
+    api = FakeHub(annotated_tags=annotated_tags)
     folder = verified_release
     monkeypatch.setattr("builtins.input", lambda _: "someone/SAI_tiny")
     plan = push_release(folder, api=api)
@@ -286,6 +290,16 @@ def test_publish_version_matches_sai_and_tag_and_is_idempotent(verified_release,
     assert "verify.json" not in api.snapshots[api.head]
     push_release(folder, confirm=True, api=api)
     assert api.commits == 1
+
+
+def test_existing_tag_with_different_content_cannot_be_overwritten(verified_release):
+    from hf_release.push import push_release
+
+    api = FakeHub()
+    api.tags[MODEL_VERSION] = api.head
+    with pytest.raises(RuntimeError, match="Danh sách file trên Hub khác"):
+        push_release(verified_release, confirm=True, api=api)
+    assert api.commits == 0 and api.tags[MODEL_VERSION] == "base"
 
 
 def test_tag_failure_resumes_without_reupload(verified_release, monkeypatch):
