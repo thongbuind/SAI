@@ -165,12 +165,14 @@ def log_model_usage(ts: float, model_name: str, user_id: str | None, prompt_len:
         conn.close()
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
-    SKIP_PATHS = {"/metrics", "/favicon.ico", "/health"}
-    CHAT_PATHS = {"/chat"}
+    SKIP_PATHS = {"/favicon.svg", "/api/health"}
+    CHAT_PATHS = {"/api/chat"}
 
     def __init__(self, app: ASGIApp, skip_prefixes: list[str] | None = None):
         super().__init__(app)
-        self._skip_prefixes = skip_prefixes or ["/static", "/assets"]
+        # /_astro/ chứa CSS, JS do Astro build ra. /api/lab/ là bàn thử nghiệm trên máy người phát triển,
+        # không phải lượt dùng của người dùng.
+        self._skip_prefixes = skip_prefixes or ["/_astro/", "/api/lab/"]
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path

@@ -1,0 +1,151 @@
+{
+  "departments": [
+    {
+      "code": "core",
+      "name": "Ban điều hành",
+      "description": "registry, config nghiêm ngặt, experiment/pipeline spec.",
+      "registries": []
+    },
+    {
+      "code": "arch",
+      "name": "Phòng Kiến trúc",
+      "description": "bản lắp ghép ``SAI_modular``, attention kernel, layer, họ mô hình.",
+      "registries": [
+        {
+          "kind": "attention_kernel",
+          "names": [
+            "eager",
+            "sdpa"
+          ]
+        },
+        {
+          "kind": "attention",
+          "names": [
+            "gqa"
+          ]
+        },
+        {
+          "kind": "ffn",
+          "names": [
+            "swiglu"
+          ]
+        },
+        {
+          "kind": "norm",
+          "names": [
+            "rmsnorm"
+          ]
+        },
+        {
+          "kind": "model",
+          "names": [
+            "SAI",
+            "SAI_modular"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "data",
+      "name": "Phòng Dữ liệu",
+      "description": "nguồn dữ liệu, split, trộn, sampler, collate, ``LMBatch``.",
+      "registries": [
+        {
+          "kind": "data_source",
+          "names": [
+            "lm",
+            "sft"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "tokenizer",
+      "name": "Phòng Tokenizer",
+      "description": "train SentencePiece, encode văn bản thô thành ``.npz``.",
+      "registries": [
+        {
+          "kind": "encoder",
+          "names": [
+            "pretrain",
+            "sft"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "objectives",
+      "name": "Phòng Objective",
+      "description": "các hàm loss thuần.",
+      "registries": [
+        {
+          "kind": "objective",
+          "names": [
+            "lm_ce"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "engine",
+      "name": "Phòng Vận hành",
+      "description": "device/AMP/compile, microbatch, optimizer, vòng lặp, profiling.",
+      "registries": [
+        {
+          "kind": "lr_schedule",
+          "names": [
+            "warmup_stable_decay"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "state",
+      "name": "Phòng Lưu trữ",
+      "description": "thư mục run, checkpoint, lineage, metrics.",
+      "registries": []
+    },
+    {
+      "code": "recipes",
+      "name": "Phòng Phương pháp huấn luyện",
+      "description": "pretrain, SFT (sau này distill, DPO, RLHF...).",
+      "registries": [
+        {
+          "kind": "recipe",
+          "names": [
+            "causal_lm",
+            "sft"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "eval",
+      "name": "Phòng Đánh giá",
+      "description": "loss, công cụ so sánh.",
+      "registries": []
+    },
+    {
+      "code": "inference",
+      "name": "Phòng Suy luận",
+      "description": "nạp checkpoint để sinh câu trả lời, so sánh các cách giải mã.",
+      "registries": [
+        {
+          "kind": "decoder",
+          "names": [
+            "sai"
+          ]
+        }
+      ]
+    }
+  ],
+  "list_order": [
+    "arch",
+    "data",
+    "objectives",
+    "engine",
+    "recipes",
+    "tokenizer",
+    "inference"
+  ]
+}

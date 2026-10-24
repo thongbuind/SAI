@@ -1,0 +1,53 @@
+---
+// Khung chung của mọi trang: head (font, theme sớm), nền, navbar, menu mobile, nội dung, footer.
+// chrome="app" (trang chat bản server) bỏ navbar, menu mobile và footer để nội dung chiếm trọn màn hình.
+import "../styles/tokens.css";
+import "../styles/base.css";
+import Backdrop from "../components/Backdrop.astro";
+import NavIsland from "../components/NavIsland.astro";
+import MobileMenu from "../components/MobileMenu.astro";
+import Footer from "../components/Footer.astro";
+import { url } from "../lib/paths";
+import type { PageKey } from "../lib/site";
+
+interface Props {
+  title: string;
+  description: string;
+  current?: PageKey;
+  chrome?: "page" | "app";
+}
+const { title, description, current, chrome = "page" } = Astro.props;
+---
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href={url("/favicon.svg")} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=Playfair+Display:wght@700;800&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <!-- Áp theme đã lưu trước khi vẽ trang để không nháy sai theme; không có thì theo hệ thống. -->
+    <script is:inline>
+      try {
+        const saved = localStorage.getItem("sai-theme");
+        if (saved === "dark" || saved === "light") document.documentElement.dataset.theme = saved;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <Backdrop />
+    {chrome === "page" && <NavIsland current={current} />}
+    {chrome === "page" && <MobileMenu current={current} />}
+    <main class="page">
+      <slot />
+    </main>
+    {chrome === "page" && current !== "lab" && <Footer />}
+  </body>
+</html>
+
+<style>
+  .page { position: relative; z-index: 1; }
+</style>

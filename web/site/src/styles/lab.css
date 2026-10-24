@@ -1,0 +1,189 @@
+/* Bàn thử nghiệm (bản server, /lab/workbench/): cùng khung với trang tài liệu Lab (navbar, sidebar Lab, cuộn cả trang),
+   thêm cột control center dính bên phải. Form, kết quả và lịch sử do script tạo lúc chạy nên không dùng được style
+   scoped của Astro; mọi selector nằm dưới .wb để không ảnh hưởng trang khác. Mốc màn hình: ≥1180 đủ ba cột;
+   900–1179 sidebar thu thành nút "Mục lục tài liệu"; <900 control center thành ngăn trượt. */
+
+/* ===== Khung ===== */
+/* --wb-sticky-top: dưới navbar nổi, cùng mốc với sidebar trang tài liệu. */
+.wb { --wb-sticky-top: 88px; --wb-control-width: 320px; position: relative; z-index: 1; max-width: var(--size-lab-max); margin-inline: auto; display: grid; grid-template-columns: var(--size-sidebar) minmax(0, 1fr) var(--wb-control-width); grid-template-areas: "side stage control"; align-items: start; gap: var(--space-5); padding: calc(var(--space-24) + 16px) var(--space-4) var(--space-16); }
+.wb :is(h1, h2, h3, p) { margin: 0; }
+.wb code { font: 400 0.92em/1 var(--font-mono); color: var(--text-primary); }
+.wb svg.icon { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.wb :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.wb .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.wb [hidden] { display: none !important; }
+.wb-scrim, .wb-open-control, .wb .lab-mobile-nav { display: none; }
+
+/* Sidebar Lab: như cột sidebar của trang tài liệu. */
+.wb-side { grid-area: side; position: sticky; top: var(--wb-sticky-top); max-height: calc(100vh - 100px); overflow-y: auto; padding-right: var(--space-3); border-right: 1px solid var(--border-subtle); }
+
+/* ===== Vùng kết quả ===== */
+.wb-stage { grid-area: stage; min-width: 0; display: flex; flex-direction: column; gap: var(--space-5); }
+.wb-header { display: flex; flex-direction: column; gap: var(--space-4); }
+.stage-head { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-4); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle); }
+.stage-grow { flex: 1; }
+.stage-head .t-caption { font-family: var(--font-mono); }
+.wb-stage > progress { width: 100%; height: 3px; display: block; margin-top: calc(-1 * var(--space-5)); border: 0; appearance: none; -webkit-appearance: none; background: transparent; accent-color: var(--fill-accent-solid); }
+.wb-stage > progress::-webkit-progress-bar { background: transparent; }
+.wb-stage > progress::-webkit-progress-value { background: var(--fill-accent-solid); }
+.wb-stage > progress::-moz-progress-bar { background: var(--fill-accent-solid); }
+.stage-body { display: flex; flex-direction: column; gap: var(--space-8); }
+.stage-empty { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-6); border-radius: var(--radius-lg); border: 1px dashed var(--border-default); }
+
+.run-picker { position: relative; }
+.run-picker-button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill); border: 1px solid var(--border-default); background: var(--fill-highlight); color: var(--text-primary); font: 500 13px/1.2 var(--font-sans); cursor: pointer; }
+.run-picker-button:hover { border-color: var(--border-strong); }
+.run-picker-button[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.run-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; width: min(380px, 80vw); max-height: 60vh; overflow-y: auto; margin: 0; padding: var(--space-1); list-style: none; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-overlay); backdrop-filter: blur(var(--blur-elevated)); -webkit-backdrop-filter: blur(var(--blur-elevated)); box-shadow: var(--elevation-3); }
+.run-menu [role="option"] { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); cursor: pointer; }
+.run-menu [role="option"]:is(:hover, :focus) { background: var(--fill-accent-hover); outline: none; }
+.run-menu [aria-selected="true"] { background: var(--fill-accent-muted); }
+.run-menu-title { font: 500 13px/1.4 var(--font-mono); color: var(--text-primary); }
+.run-menu .t-caption { grid-column: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-menu .lab-state { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.run-menu-empty { padding: var(--space-3); }
+
+.lab-state { display: inline-flex; align-items: center; padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); border: 1px solid var(--border-default); background: var(--fill-highlight); color: var(--text-secondary); font: 500 12px/1 var(--font-sans); white-space: nowrap; }
+.lab-state:is([data-state="queued"], [data-state="running"]) { border-color: var(--border-strong); background: var(--fill-accent-subtle); color: var(--text-accent); }
+.lab-state[data-state="succeeded"] { border-color: var(--border-success); background: var(--fill-success-subtle); color: var(--text-success); }
+.lab-state[data-state="failed"] { border-color: var(--border-danger); background: var(--fill-danger-subtle); color: var(--text-danger); }
+.lab-state:is([data-state="cancelled"], [data-state="incomplete"]) { border-color: var(--border-warning); background: var(--fill-warning-subtle); color: var(--text-warning); }
+
+.bench-error { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--border-danger); background: var(--fill-danger-subtle); color: var(--text-danger); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Bảng metric: nhóm (biến thể) là cột, ô tốt nhất tô màu nhấn. */
+#bench-metrics { overflow-x: auto; }
+.lab-metrics { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.lab-metrics :is(th, td) { padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.lab-metrics thead th { font: 600 12px/1.4 var(--font-sans); color: var(--text-primary); text-align: right; }
+.lab-metrics tbody th { text-align: left; font-weight: 400; color: var(--text-secondary); }
+.lab-metrics td { text-align: right; font-family: var(--font-mono); color: var(--text-primary); }
+.lab-metrics td.is-best { color: var(--text-accent); font-weight: 600; }
+.lab-metrics tbody tr:last-child :is(th, td) { border-bottom: 0; }
+
+/* Lưới so sánh: câu hỏi × biến thể. */
+#bench-compare { overflow-x: auto; }
+/* Ít biến thể: cột chia đều cho vừa khung; nhiều biến thể (data-scroll, xem resultView.ts): cột rộng tối thiểu, cuộn ngang. */
+.lab-compare { display: grid; grid-template-columns: minmax(120px, 170px) repeat(var(--variants), minmax(0, 1fr)); gap: var(--space-3); align-items: stretch; }
+.lab-compare[data-scroll="true"] { grid-template-columns: minmax(120px, 170px) repeat(var(--variants), minmax(220px, 1fr)); }
+.lab-compare-head { padding: 0 var(--space-1); font: 500 11px/1.4 var(--font-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); }
+.lab-compare-prompt { padding: var(--space-3) var(--space-1); font: 600 14px/1.5 var(--font-sans); color: var(--text-primary); overflow-wrap: anywhere; }
+.lab-answer { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-raised); }
+.lab-answer.is-pending { justify-content: center; border-style: dashed; background: transparent; color: var(--text-tertiary); font-size: 13px; }
+.lab-answer-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.65; color: var(--text-primary); }
+.lab-answer-meta { font: 400 11.5px/1.4 var(--font-mono); color: var(--text-tertiary); }
+
+/* ===== Control center ===== */
+/* Thẻ dính bên phải, cao tối đa bằng màn hình; phần form cuộn bên trong, nút Chạy luôn thấy. */
+.wb-control { grid-area: control; position: sticky; top: var(--wb-sticky-top); max-height: calc(100vh - var(--wb-sticky-top) - var(--space-4)); display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); backdrop-filter: blur(var(--blur-panel)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur-panel)) saturate(1.4); }
+.control-head { display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) var(--space-4) var(--space-3); }
+.control-head .t-caption { font-family: var(--font-mono); }
+/* Luôn chừa chỗ thanh cuộn: mở/đóng biến thể làm thanh cuộn hiện/ẩn mà nội dung không bị đẩy ngang. */
+.control-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; padding: 0 var(--space-4) var(--space-4); }
+.control-foot { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-subtle); }
+.control-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.control-actions .t-caption { flex: 1; }
+
+.lab-object { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.lab-object > * { width: 100%; }
+.lab-object > .lab-field-half { width: calc(50% - var(--space-3) / 2); }
+.lab-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lab-field > label { font: 500 12px/1.4 var(--font-sans); color: var(--text-secondary); }
+.lab-field-inline { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.lab-field-inline > label { order: 1; }
+.lab-field-inline .t-caption { order: 2; width: 100%; }
+.lab-field :is(input:not([type="checkbox"], [type="range"]), select, textarea) { width: 100%; min-width: 0; padding: 7px 10px; border-radius: var(--radius-md); border: 1px solid var(--border-default); background: var(--fill-highlight); color: var(--text-primary); font: 400 13px/1.4 var(--font-sans); }
+.lab-field textarea { resize: vertical; margin-top: var(--space-2); }
+.lab-field :is(input, select, textarea):invalid { border-color: var(--border-danger); }
+.lab-field :is(input[type="checkbox"], input[type="range"]) { accent-color: var(--fill-accent-solid); }
+
+.lab-segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 2px; border-radius: var(--radius-md); border: 1px solid var(--border-default); background: var(--fill-highlight); }
+.lab-segmented button { padding: 5px 4px; border: 1px solid transparent; border-radius: calc(var(--radius-md) - 2px); background: none; color: var(--text-tertiary); font: 500 12px/1.2 var(--font-sans); cursor: pointer; }
+.lab-segmented button:hover { color: var(--text-primary); }
+.lab-segmented button[aria-checked="true"] { background: var(--fill-accent-active); border-color: var(--border-strong); color: var(--text-primary); }
+
+.lab-slider { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: var(--space-3); }
+.lab-slider input { width: 100%; }
+.lab-slider output { font: 500 12px/1 var(--font-mono); color: var(--text-primary); text-align: right; }
+
+.lab-lines-head { display: flex; align-items: flex-start; gap: var(--space-2); }
+.lab-chips { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.lab-chip { max-width: 100%; padding: 3px 9px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); background: var(--fill-accent-subtle); color: var(--text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-chip-more { background: none; color: var(--text-tertiary); }
+.lab-link { padding: 3px 4px; border: 0; background: none; color: var(--text-accent); font: 500 12px/1.4 var(--font-sans); cursor: pointer; }
+.lab-link:disabled { opacity: 0.5; cursor: progress; }
+.bench-benchmark { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.bench-benchmark[data-saved="false"] .t-caption { color: var(--text-warning); }
+
+.lab-section { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
+.lab-section-title { font: 600 13px/1.4 var(--font-sans); color: var(--text-primary); }
+/* Danh sách: số mục và nút thêm nằm cùng dòng với tiêu đề mục. */
+.lab-section:has(> .lab-list) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.lab-section > .lab-list { display: contents; }
+.lab-list-items, .lab-list-error { grid-column: 1 / -1; }
+.lab-list-head { display: flex; align-items: center; }
+.lab-list-head .t-caption { margin-right: var(--space-1); font-family: var(--font-mono); }
+.lab-list-items { display: flex; flex-direction: column; gap: var(--space-2); }
+.lab-list-error { color: var(--text-danger); font-size: 12px; }
+.lab-icon-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: var(--radius-pill); border: 1px solid transparent; background: none; color: var(--text-tertiary); cursor: pointer; }
+.lab-icon-btn:hover:not(:disabled) { background: var(--fill-accent-hover); color: var(--text-primary); }
+.lab-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.lab-item { border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); background: var(--fill-highlight); }
+.lab-item[data-open="true"] { border-color: var(--border-strong); background: var(--surface-raised); }
+.lab-item-bar { display: flex; align-items: center; gap: 2px; padding-right: var(--space-1); }
+.lab-item-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-lg); background: none; color: inherit; text-align: left; cursor: pointer; }
+/* Viền focus nằm trong thẻ và bo theo góc thẻ, không cắt ngang góc bo. */
+.wb .lab-item-toggle:focus-visible { outline-offset: -2px; }
+.lab-item-toggle .icon { color: var(--text-tertiary); transform: rotate(-90deg); transition: transform var(--duration-fast); }
+.lab-item[data-open="true"] .lab-item-toggle .icon { transform: none; }
+.lab-item-title { font: 600 13px/1.3 var(--font-sans); color: var(--text-primary); white-space: nowrap; }
+.lab-item-detail { min-width: 0; font: 400 12px/1.3 var(--font-mono); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-item > .lab-object { padding: var(--space-1) var(--space-3) var(--space-3); }
+.lab-icon-btn[aria-pressed="true"] { background: var(--fill-accent-muted); color: var(--text-accent); }
+.lab-yaml { position: relative; margin: 0 var(--space-3) var(--space-3); border-radius: var(--radius-md); background: var(--surface-terminal); }
+.lab-yaml pre { margin: 0; padding: var(--space-3) 40px var(--space-3) var(--space-3); overflow-x: auto; color: var(--code-text); font: 400 12px/1.6 var(--font-mono); }
+/* Nền terminal tối ở cả hai theme: nút sao chép dùng màu chữ của khối code. */
+.lab-yaml .lab-icon-btn { position: absolute; top: var(--space-1); right: var(--space-1); color: var(--code-muted); }
+.lab-yaml .lab-icon-btn:hover { color: var(--code-text); }
+
+.lab-advanced summary { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; list-style: none; font: 500 12px/1.4 var(--font-sans); color: var(--text-secondary); cursor: pointer; }
+.lab-advanced summary::-webkit-details-marker { display: none; }
+.lab-advanced summary .icon { transform: rotate(-90deg); transition: transform var(--duration-fast); }
+.lab-advanced[open] summary .icon { transform: none; }
+.lab-advanced-count { margin-left: auto; color: var(--text-accent); }
+.lab-advanced > .lab-object { padding-top: var(--space-3); }
+
+.bench-confirm { max-width: min(480px, calc(100vw - 32px)); padding: var(--space-5); border-radius: var(--radius-xl); border: 1px solid var(--border-default); background: var(--surface-overlay); color: var(--text-primary); box-shadow: var(--elevation-3); }
+.bench-confirm[open] { display: flex; flex-direction: column; gap: var(--space-4); }
+.bench-confirm h2, .bench-confirm p { margin: 0; }
+.bench-confirm::backdrop { background: rgb(0 0 0 / 0.5); }
+
+/* ===== Màn vừa: sidebar thu thành nút "Mục lục tài liệu" ===== */
+@media (max-width: 1179px) {
+  .wb { grid-template-columns: minmax(0, 1fr) var(--wb-control-width); grid-template-areas: "stage control"; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+  .wb-side { display: none; }
+  .wb .lab-mobile-nav { display: block; }
+}
+
+/* ===== Màn hẹp: control center là ngăn trượt ===== */
+@media (max-width: 899px) {
+  .wb { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage"; padding-top: 88px; }
+  .wb-open-control { display: inline-flex; align-items: center; gap: var(--space-2); padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--fill-accent-muted); color: var(--text-primary); font: 500 13px/1.2 var(--font-sans); cursor: pointer; }
+  /* Ngăn nằm dưới navbar nổi (navbar ở lớp trên nội dung trang). */
+  .wb-control { position: fixed; top: 72px; bottom: var(--space-2); right: var(--space-2); z-index: 30; width: min(380px, calc(100vw - 16px)); max-height: none; background: var(--surface-overlay); box-shadow: var(--elevation-3); transform: translateX(calc(100% + 16px)); transition: transform var(--duration-base) var(--easing-standard); }
+  .wb[data-open="control"] .wb-control { transform: none; }
+  .wb-scrim { display: block; position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / 0.45); }
+}
+
+/* Vùng kết quả hẹp: lưới so sánh thành từng câu hỏi xếp dọc, mỗi câu trả lời ghi tên biến thể. */
+@media (max-width: 699px) {
+  .lab-compare { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .lab-compare-head { display: none; }
+  .lab-compare-prompt { margin-top: var(--space-3); padding-bottom: 0; }
+  .lab-answer::before { content: attr(data-variant); font: italic 400 12px/1 var(--font-serif); letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-accent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-control, .lab-item-toggle .icon, .lab-advanced summary .icon { transition: none; }
+}

@@ -1,0 +1,78 @@
+---
+// Nền trang: canvas hạt (màu lấy từ token --color-particle-*) và orb mờ. Đứng yên khi người xem bật giảm chuyển động.
+interface Props {
+  particles?: number;
+}
+const { particles = 360 } = Astro.props;
+---
+<div class="backdrop" aria-hidden="true">
+  <canvas data-particles={particles}></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<style>
+  .backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(var(--blur-orb)); }
+  .orb-1 { width: 550px; height: 550px; top: -120px; left: -170px; background: radial-gradient(circle, var(--orb-1), transparent 70%); animation: orb-a 20s ease-in-out infinite; }
+  .orb-2 { width: 420px; height: 420px; bottom: -90px; right: -110px; background: radial-gradient(circle, var(--orb-2), transparent 70%); animation: orb-b 25s ease-in-out infinite; }
+  .orb-3 { width: 300px; height: 300px; top: 40%; left: 55%; background: radial-gradient(circle, var(--orb-3), transparent 70%); animation: orb-a 30s ease-in-out infinite reverse; }
+  @keyframes orb-a { 50% { transform: translate(50px, 60px); } }
+  @keyframes orb-b { 50% { transform: translate(-60px, -50px); } }
+</style>
+
+<script>
+  // Mỗi hạt: vị trí, vận tốc, bán kính, màu (chỉ số 0–5) và alpha trong khoảng [ALPHA_MIN, ALPHA_MAX].
+  const ALPHA_MIN = 0.12;
+  const ALPHA_MAX = 0.5;
+  const COLOR_COUNT = 6;
+
+  const canvas = document.querySelector<HTMLCanvasElement>(".backdrop canvas");
+  const context = canvas?.getContext("2d");
+  if (canvas && context) {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const count = Number(canvas.dataset.particles);
+    let width = 0, height = 0;
+    let colors: string[] = [];
+    let points: { x: number; y: number; vx: number; vy: number; r: number; c: number; a: number; phase: number }[] = [];
+
+    const readColors = () => {
+      const style = getComputedStyle(document.documentElement);
+      colors = Array.from({ length: COLOR_COUNT }, (_, i) => style.getPropertyValue(`--color-particle-${i + 1}`).trim().replace(/\s+/g, ","));
+    };
+    const init = () => {
+      width = canvas.width = canvas.clientWidth;
+      height = canvas.height = canvas.clientHeight;
+      points = Array.from({ length: count }, () => ({
+        x: Math.random() * width, y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
+        r: Math.random() * 2 + 0.4, c: Math.floor(Math.random() * COLOR_COUNT),
+        a: ALPHA_MIN + Math.random() * (ALPHA_MAX - ALPHA_MIN), phase: Math.random() * Math.PI * 2,
+      }));
+    };
+    const draw = () => {
+      context.clearRect(0, 0, width, height);
+      for (const p of points) {
+        if (!reduceMotion) {
+          p.phase += 0.006;
+          p.x += p.vx + Math.sin(p.phase) * 0.3;
+          p.y += p.vy + Math.cos(p.phase) * 0.3;
+        }
+        // Hạt ra khỏi khung thì vòng sang cạnh đối diện.
+        if (p.x < -10) p.x = width + 10; if (p.x > width + 10) p.x = -10;
+        if (p.y < -10) p.y = height + 10; if (p.y > height + 10) p.y = -10;
+        context.beginPath();
+        context.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        context.fillStyle = `rgba(${colors[p.c]},${p.a})`;
+        context.fill();
+      }
+      if (!reduceMotion) requestAnimationFrame(draw);
+    };
+
+    readColors(); init(); draw();
+    window.addEventListener("resize", () => { init(); if (reduceMotion) draw(); });
+    window.addEventListener("sai-theme-change", () => { readColors(); if (reduceMotion) draw(); });
+  }
+</script>

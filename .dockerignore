@@ -1,0 +1,12 @@
+# Build context của web/Dockerfile là gốc repo; chỉ những gì Dockerfile COPY mới cần gửi lên.
+.git
+data/
+model/
+runs/
+**/__pycache__
+**/.DS_Store
+web/chat_history
+web/analytics.db*
+web/site/node_modules
+web/site/dist
+web/site/.astro

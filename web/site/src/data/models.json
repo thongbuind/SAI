@@ -1,0 +1,47 @@
+[
+  {
+    "name": "SAI_35M",
+    "label": "35M",
+    "repo_id": "thongbuind/SAI_35M",
+    "url": "https://huggingface.co/thongbuind/SAI_35M",
+    "license": "apache-2.0",
+    "parameters": 38683136,
+    "vocab_size": 10000,
+    "max_seq_len": 10240,
+    "d_model": 512,
+    "num_heads": 8,
+    "num_kv_heads": 8,
+    "num_layers": 8,
+    "ff_dim": 2048
+  },
+  {
+    "name": "SAI_100M",
+    "label": "100M",
+    "repo_id": "thongbuind/SAI_100M",
+    "url": "https://huggingface.co/thongbuind/SAI_100M",
+    "license": "apache-2.0",
+    "parameters": 113867520,
+    "vocab_size": 10000,
+    "max_seq_len": 10240,
+    "d_model": 768,
+    "num_heads": 12,
+    "num_kv_heads": 6,
+    "num_layers": 12,
+    "ff_dim": 3072
+  },
+  {
+    "name": "SAI_375M",
+    "label": "375M",
+    "repo_id": "thongbuind/SAI_375M",
+    "url": "https://huggingface.co/thongbuind/SAI_375M",
+    "license": "apache-2.0",
+    "parameters": 375194624,
+    "vocab_size": 10000,
+    "max_seq_len": 10240,
+    "d_model": 1024,
+    "num_heads": 16,
+    "num_kv_heads": 4,
+    "num_layers": 24,
+    "ff_dim": 4096
+  }
+]

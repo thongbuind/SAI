@@ -1,0 +1,173 @@
+---
+// /try/ của bản static: hướng dẫn tải SAI từ Hugging Face và chạy trên máy người dùng.
+// Mô hình, giấy phép và giá trị mặc định của tham số sinh đọc từ src/data (sinh từ code).
+import SectionHeader from "../SectionHeader.astro";
+import Notice from "../Notice.astro";
+import Button from "../Button.astro";
+import CodeBlock from "../CodeBlock.astro";
+import ModelPicker from "../ModelPicker.astro";
+import StepList from "../StepList.astro";
+import Step from "../Step.astro";
+import DeviceTabs from "../DeviceTabs.astro";
+import Icon from "../Icon.astro";
+import { GITHUB_URL } from "../../lib/site";
+import models from "../../data/models.json";
+import generation from "../../data/generation.json";
+
+const DEFAULT_MODEL = "SAI_100M";
+const selected = models.find(model => model.name === DEFAULT_MODEL)!;
+const MODEL_NOTES = {
+  SAI_35M: { tag: "nhanh nhất", text: "Thử nhanh, chạy được trên CPU." },
+  SAI_100M: { tag: "khuyến nghị", text: "Cân bằng giữa chất lượng và tốc độ." },
+  SAI_375M: { tag: "mạnh nhất", text: "Chất lượng tốt nhất, nên có GPU." },
+};
+// Ý nghĩa từng tham số sinh, viết theo cách SAI/generate.py dùng chúng.
+const GENERATION_MEANING: Record<string, string> = {
+  strategy: "auto, beam, greedy hoặc sample. auto dùng beam search.",
+  max_new_tokens: "Số token tối đa sinh thêm.",
+  beam_size: "Số beam khi dùng beam search.",
+  stable_steps: "Beam search dừng sớm khi câu tốt nhất không đổi sau số bước này; None để tắt.",
+  length_penalty: "Điểm của beam chia cho độ dài mũ giá trị này; lớn hơn thì ưu tiên câu dài.",
+  repetition_penalty: "Giảm xác suất của token đã sinh để bớt lặp lại.",
+  no_repeat_ngram_size: "Cấm sinh lại một cụm n token đã có; 0 để tắt.",
+  temperature: "Chỉ dùng khi strategy là sample; nhỏ hơn thì câu trả lời ổn định hơn.",
+  top_k: "Khi sample, chỉ lấy trong k token xác suất cao nhất; 0 để tắt.",
+  top_p: "Khi sample, chỉ lấy trong nhóm token có tổng xác suất bằng giá trị này.",
+  lowercase: "Đưa hội thoại về chữ thường trước khi encode, khớp dữ liệu huấn luyện tokenizer.",
+};
+for (const option of generation) {
+  if (!GENERATION_MEANING[option.name]) throw new Error(`Thiếu ý nghĩa cho tham số sinh "${option.name}" trong TryStatic.astro`);
+}
+const formatDefault = (value: unknown) => (typeof value === "boolean" ? (value ? "True" : "False") : value === null ? "None" : String(value));
+
+const installCommand = "$ pip install torch transformers accelerate sentencepiece";
+const downloadCode = `from huggingface_hub import snapshot_download
+
+snapshot_download("${selected.repo_id}")`;
+const runCode = `import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model_id = "${selected.repo_id}"
+tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True)
+
+device = "cuda" if torch.cuda.is_available() else (
+    "mps" if torch.backends.mps.is_available() else "cpu"
+)
+model = model.to(device).eval()
+
+messages = [
+    {"role": "system", "content": "Bạn là trợ lý trả lời ngắn gọn."},
+    {"role": "user", "content": "Trí tuệ nhân tạo là gì"},
+]
+print(model.generate_response(tokenizer=tokenizer, messages=messages))`;
+---
+<div class="container" data-try="static">
+  <section class="intro" aria-labelledby="try-title">
+    <SectionHeader level={1} id="try-title" overline="Trải nghiệm · bản tĩnh" title="Chạy SAI" emphasis="trên máy của bạn" description="Trọng số SAI có trên Hugging Face. Chọn cỡ mô hình, cài thư viện, chạy vài dòng Python. Không cần tài khoản, không gửi dữ liệu lên máy chủ nào." />
+    <Notice title="Trang này thuộc bản web tĩnh">Chat trực tiếp trên trình duyệt chỉ có ở bản web chạy trên máy chủ. Xem câu hỏi cuối trang.</Notice>
+  </section>
+
+  <div class="layout">
+    <div class="main">
+      <ModelPicker selected={DEFAULT_MODEL} notes={MODEL_NOTES} />
+
+      <StepList>
+        <Step title="Cài thư viện" description="Cần Python và PyTorch. Chọn thiết bị bạn có để xem lưu ý.">
+          <DeviceTabs id="device" label="Thiết bị" tabs={[
+            { id: "cuda", label: "CUDA", note: "Cài bản PyTorch khớp với driver NVIDIA theo hướng dẫn trên pytorch.org." },
+            { id: "mps", label: "Apple MPS", note: "Máy Mac chip Apple: bản PyTorch mặc định của pip đã hỗ trợ MPS." },
+            { id: "cpu", label: "CPU", note: "Chạy được trên mọi máy; nên bắt đầu với SAI 35M hoặc 100M." },
+          ]} />
+          <CodeBlock code={installCommand} lang="bash" kind="terminal" wrap />
+        </Step>
+        <Step title="Tải trọng số (tuỳ chọn)" description="Transformers tự tải model, tokenizer và config ở lần chạy đầu, các lần sau dùng bộ nhớ đệm. Muốn tải trước để chạy offline:">
+          <div data-model-scope><CodeBlock code={downloadCode} lang="python" title="tai_truoc.py" /></div>
+        </Step>
+        <Step title="Chạy thử" description="Code tự chọn CUDA, MPS hoặc CPU theo máy của bạn.">
+          <div data-model-scope><CodeBlock code={runCode} lang="python" title="chay_thu.py" /></div>
+        </Step>
+        <Step title="Tinh chỉnh cách sinh văn bản">
+          <p class="t-small">Câu trả lời được sinh bằng <code>GenerationConfig</code> trong <a href={`${GITHUB_URL}/blob/main/SAI/generate.py`} target="_blank" rel="noopener">SAI/generate.py</a>. Giá trị mặc định:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Tham số</th><th scope="col">Mặc định</th><th scope="col">Ý nghĩa</th></tr></thead>
+              <tbody>
+                {generation.map(option => (
+                  <tr><th scope="row">{option.name}</th><td>{formatDefault(option.default)}</td><td>{GENERATION_MEANING[option.name]}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Step>
+      </StepList>
+
+      <section class="faq" aria-labelledby="faq-title">
+        <h2 class="t-h2" id="faq-title">Câu hỏi thường gặp</h2>
+        <details>
+          <summary><span>Máy tôi chỉ có CPU, có chạy được không?</span><Icon name="chevron-down" /></summary>
+          <p>Được. SAI 35M và 100M chạy được trên CPU; 375M cũng chạy được nhưng chậm. Giảm độ dài câu trả lời để thử nhanh.</p>
+        </details>
+        <details>
+          <summary><span>Vì sao câu trả lời toàn chữ thường?</span><Icon name="chevron-down" /></summary>
+          <p>Tokenizer được huấn luyện trên dữ liệu đã chuyển về chữ thường, nên mô hình cũng sinh chữ thường.</p>
+        </details>
+        <details>
+          <summary><span>Tôi có được dùng SAI cho dự án của mình không?</span><Icon name="chevron-down" /></summary>
+          <p>Mã nguồn và trọng số phát hành theo giấy phép Apache-2.0. Hãy đọc model card trên Hugging Face và lưu ý về hallucination trước khi dùng.</p>
+        </details>
+        <details>
+          <summary><span>Muốn chat trên trình duyệt thì làm sao?</span><Icon name="chevron-down" /></summary>
+          <p>Bản web chạy trên máy chủ có trang chat. Bạn có thể tự chạy bản đó từ mã nguồn trên GitHub.</p>
+        </details>
+      </section>
+    </div>
+
+    <aside class="aside" aria-label="Tóm tắt lựa chọn">
+      <div class="summary glass-panel">
+        <span class="t-overline">Bạn đang chọn</span>
+        <span class="t-h3" data-model-id>{selected.repo_id}</span>
+        <dl>
+          <dt>Thư viện</dt><dd>transformers</dd>
+          <dt>Giấy phép</dt><dd>{selected.license}</dd>
+        </dl>
+        <a class="hub-link" href={selected.url} target="_blank" rel="noopener" data-model-link>Mở trên Hugging Face <Icon name="external" size={12} /></a>
+      </div>
+      <Notice tone="danger" title="Hallucination nặng">Mô hình thường tự bịa thông tin. Hãy kiểm chứng câu trả lời quan trọng.</Notice>
+      <Button size="sm" icon="github" href={GITHUB_URL} external>Mã nguồn trên GitHub</Button>
+    </aside>
+  </div>
+</div>
+
+<style>
+  .intro { padding-block: calc(var(--space-24) + 32px) var(--space-10); display: flex; flex-direction: column; gap: var(--space-6); max-width: 760px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-12); align-items: start; padding-bottom: var(--space-16); }
+  .main { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }
+  .aside { position: sticky; top: 96px; display: flex; flex-direction: column; gap: var(--space-4); align-items: stretch; }
+  .summary { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); }
+  .summary dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2) var(--space-4); font-size: 13px; }
+  .summary dt { color: var(--text-tertiary); }
+  .summary dd { margin: 0; text-align: right; color: var(--text-primary); }
+  .hub-link { display: inline-flex; align-items: center; gap: var(--space-1); font: 500 13px/1 var(--font-sans); color: var(--text-accent); text-decoration: none; }
+  .hub-link:hover { color: var(--text-primary); }
+  .main p { margin: 0; }
+  .main a { color: var(--text-accent); }
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); }
+  table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
+  tr:last-child > * { border-bottom: 0; }
+  thead th { background: var(--fill-accent-subtle); font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
+  tbody th { font: 400 12px/1.6 var(--font-mono); color: var(--text-accent); white-space: nowrap; }
+  td:nth-child(2) { color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  td { color: var(--text-secondary); }
+  .faq { display: flex; flex-direction: column; }
+  .faq h2 { margin: 0 0 var(--space-4); }
+  details { padding-block: var(--space-5); border-bottom: 1px solid var(--border-subtle); }
+  summary { display: flex; align-items: center; gap: var(--space-4); cursor: pointer; list-style: none; font: 600 15px/1.5 var(--font-sans); }
+  summary::-webkit-details-marker { display: none; }
+  summary span { flex: 1; }
+  summary :global(.icon) { color: var(--text-tertiary); transition: transform var(--duration-base); }
+  details[open] summary :global(.icon) { transform: rotate(180deg); color: var(--text-accent); }
+  .faq details p { margin: var(--space-3) 0 0; color: var(--text-secondary); }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } .aside { position: static; } }
+</style>

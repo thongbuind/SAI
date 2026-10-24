@@ -1,0 +1,45 @@
+---
+// OnPageTOC trên Figma: mục lục h2/h3 của trang; mục đang đọc được đánh dấu khi cuộn.
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+const { headings } = Astro.props;
+const items = headings.filter(heading => heading.depth === 2 || heading.depth === 3);
+---
+{items.length > 0 && (
+  <nav class="toc" aria-label="Trên trang này">
+    <p class="t-overline">Trên trang này</p>
+    {items.map(heading => (
+      <a class:list={{ "is-sub": heading.depth === 3 }} href={`#${heading.slug}`} data-toc-link>{heading.text}</a>
+    ))}
+  </nav>
+)}
+
+<style>
+  .toc { display: flex; flex-direction: column; }
+  .toc .t-overline { margin: 0 0 var(--space-3); }
+  a { display: block; padding: 4px 0 4px var(--space-3); border-left: 2px solid var(--border-subtle); color: var(--text-tertiary); text-decoration: none; font-size: 13px; line-height: 1.5; }
+  a.is-sub { padding-left: var(--space-6); }
+  a:hover { color: var(--text-primary); }
+  a[aria-current="true"] { color: var(--text-accent); border-left-color: var(--fill-accent-solid); }
+</style>
+
+<script>
+  // Section nằm trong dải 20%–30% chiều cao màn hình được coi là đang đọc.
+  const VISIBLE_BAND = "-20% 0px -70% 0px";
+  const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")];
+  if (links.length) {
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        links.forEach(link => link.setAttribute("aria-current", String(link.hash === `#${entry.target.id}`)));
+      }
+    }, { rootMargin: VISIBLE_BAND });
+    links.forEach(link => {
+      const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+      if (target) observer.observe(target);
+    });
+  }
+</script>

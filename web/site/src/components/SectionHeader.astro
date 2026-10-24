@@ -1,0 +1,27 @@
+---
+// SectionHeader trên Figma: overline, tiêu đề có phần nhấn nghiêng, mô tả. level 1 cho đầu trang, 2 cho section.
+interface Props {
+  overline: string;
+  title: string;
+  emphasis: string;
+  description?: string;
+  align?: "left" | "center";
+  level?: 1 | 2;
+  id?: string;
+}
+const { overline, title, emphasis, description, align = "left", level = 2, id } = Astro.props;
+const Heading = level === 1 ? "h1" : "h2";
+---
+<div class:list={["section-header", { "is-center": align === "center" }]}>
+  <p class="t-overline">{overline}</p>
+  <Heading class={level === 1 ? "t-h1" : "t-h2"} id={id}>{title}{" "}<em>{emphasis}</em></Heading>
+  {description && <p class="t-large">{description}</p>}
+  <slot />
+</div>
+
+<style>
+  .section-header { display: flex; flex-direction: column; gap: var(--space-4); max-width: var(--size-prose-max); }
+  .section-header > :global(*) { margin: 0; }
+  .is-center { margin-inline: auto; align-items: center; text-align: center; }
+  .t-large { max-width: 640px; }
+</style>

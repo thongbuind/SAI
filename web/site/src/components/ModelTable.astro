@@ -1,0 +1,60 @@
+---
+// ModelTable trên Figma: so sánh các mô hình đã phát hành (models.json), nhấn mô hình lớn nhất.
+import Badge from "./Badge.astro";
+import Button from "./Button.astro";
+import models from "../data/models.json";
+
+const largest = models.at(-1)!.name;
+const number = (value: number) => value.toLocaleString("vi-VN");
+const rows: { label: string; value: (model: (typeof models)[number]) => string }[] = [
+  { label: "d_model", value: m => number(m.d_model) },
+  { label: "Attention heads", value: m => number(m.num_heads) },
+  { label: "KV heads (GQA)", value: m => number(m.num_kv_heads) },
+  { label: "Layers", value: m => number(m.num_layers) },
+  { label: "FFN dimension", value: m => number(m.ff_dim) },
+  { label: "Context", value: m => number(m.max_seq_len) },
+];
+---
+<div class="table-wrap glass-panel">
+  <table>
+    <caption class="sr-only">So sánh các cỡ mô hình SAI</caption>
+    <thead>
+      <tr>
+        <th scope="col">Tham số</th>
+        {models.map(model => (
+          <th scope="col" class:list={{ "is-highlight": model.name === largest }}>
+            SAI {model.label}{model.name === largest && <Badge>mạnh nhất</Badge>}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map(row => (
+        <tr><th scope="row">{row.label}</th>{models.map(model => <td class:list={{ "is-highlight": model.name === largest }}>{row.value(model)}</td>)}</tr>
+      ))}
+      <tr class="total"><th scope="row">Tổng tham số</th>{models.map(model => <td class:list={{ "is-highlight": model.name === largest }}><span class="stat">{model.label}</span></td>)}</tr>
+      <tr><th scope="row">Trọng số</th>{models.map(model => <td class:list={{ "is-highlight": model.name === largest }}><Button size="sm" trailingIcon="external" href={model.url} external>{model.name}</Button></td>)}</tr>
+    </tbody>
+  </table>
+</div>
+<p class="t-caption hint">Vuốt ngang để xem đủ các mô hình.</p>
+
+<style>
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); }
+  table { width: 100%; min-width: 760px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-subtle); text-align: center; }
+  tr:last-child > * { border-bottom: 0; }
+  thead th { background: var(--fill-accent-subtle); font: 600 15px/1.4 var(--font-sans); }
+  thead th :global(.badge) { margin-left: var(--space-2); }
+  thead th:first-child { font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
+  /* Cột tên tham số dính trái khi cuộn ngang trên mobile. */
+  tbody th, thead th:first-child { position: sticky; left: 0; text-align: left; background: var(--surface-page); }
+  tbody th { font: 400 12px/1.6 var(--font-mono); color: var(--text-accent); }
+  .total th { font: 500 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+  /* Ô dính trái cần nền đặc (để che nội dung cuộn bên dưới) nhưng vẫn cùng tông với hàng của nó. */
+  thead th:first-child, .total th { background: linear-gradient(var(--fill-accent-subtle), var(--fill-accent-subtle)), var(--surface-page); }
+  .is-highlight, .total td { background: var(--fill-accent-subtle); }
+  .stat { font: 700 28px/1.2 var(--font-display); background: var(--gradient-logo); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hint { display: none; margin: var(--space-2) 0 0; }
+  @media (max-width: 900px) { .hint { display: block; } }
+</style>

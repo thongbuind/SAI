@@ -25,7 +25,7 @@ def _conn() -> sqlite3.Connection:
 def _since(days: int) -> str:
     return (datetime.now(tz=timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
-@router.get("/api/web/overview")
+@router.get("/web/overview")
 def web_overview(request: Request, days: int = Query(7, ge=1, le=90)):
     _auth(request)
     conn = _conn()
@@ -68,7 +68,7 @@ def web_overview(request: Request, days: int = Query(7, ge=1, le=90)):
         "unique_users": unique_users,
     }
 
-@router.get("/api/web/daily")
+@router.get("/web/daily")
 def web_daily(request: Request, days: int = Query(30, ge=1, le=365)):
     _auth(request)
     conn = _conn()
@@ -86,7 +86,7 @@ def web_daily(request: Request, days: int = Query(30, ge=1, le=365)):
     conn.close()
     return {"data": [dict(r) for r in rows]}
 
-@router.get("/api/web/hourly")
+@router.get("/web/hourly")
 def web_hourly(request: Request, days: int = Query(7, ge=1, le=30)):
     _auth(request)
     conn = _conn()
@@ -102,7 +102,7 @@ def web_hourly(request: Request, days: int = Query(7, ge=1, le=30)):
     conn.close()
     return {"data": [dict(r) for r in rows]}
 
-@router.get("/api/web/top-paths")
+@router.get("/web/top-paths")
 def web_top_paths(request: Request, days: int = Query(7, ge=1, le=30), limit: int = Query(20, ge=5, le=100)):
     _auth(request)
     conn = _conn()
@@ -117,7 +117,7 @@ def web_top_paths(request: Request, days: int = Query(7, ge=1, le=30), limit: in
     conn.close()
     return {"data": [dict(r) for r in rows]}
 
-@router.get("/api/web/latency")
+@router.get("/web/latency")
 def web_latency(request: Request, days: int = Query(7, ge=1, le=30)):
     _auth(request)
     conn = _conn()
@@ -130,7 +130,7 @@ def web_latency(request: Request, days: int = Query(7, ge=1, le=30)):
     lats = [r["latency_ms"] for r in rows]
     return _percentile_response(lats)
 
-@router.get("/api/ai/overview")
+@router.get("/ai/overview")
 def ai_overview(request: Request, days: int = Query(7, ge=1, le=90)):
     _auth(request)
     conn = _conn()
@@ -195,7 +195,7 @@ def ai_overview(request: Request, days: int = Query(7, ge=1, le=90)):
         "avg_req_per_user": round(req_per_user, 2),
     }
 
-@router.get("/api/ai/requests")
+@router.get("/ai/requests")
 def ai_requests(request: Request, limit: int = Query(100, ge=1, le=500)):
     """100 request chat gần nhất, đủ chi tiết."""
     _auth(request)
@@ -216,7 +216,7 @@ def ai_requests(request: Request, limit: int = Query(100, ge=1, le=500)):
         result.append(d)
     return {"data": result}
 
-@router.get("/api/ai/daily")
+@router.get("/ai/daily")
 def ai_daily(request: Request, days: int = Query(30, ge=1, le=365)):
     _auth(request)
     conn = _conn()
@@ -236,7 +236,7 @@ def ai_daily(request: Request, days: int = Query(30, ge=1, le=365)):
     conn.close()
     return {"data": [dict(r) for r in rows]}
 
-@router.get("/api/ai/token-stats")
+@router.get("/ai/token-stats")
 def ai_token_stats(request: Request, days: int = Query(7, ge=1, le=90)):
     """Thống kê chi tiết token: histogram, percentile, phân bố theo model."""
     _auth(request)
@@ -287,7 +287,7 @@ def ai_token_stats(request: Request, days: int = Query(7, ge=1, le=90)):
         "latency_dist":    _percentile_response(lat_vals),
     }
 
-@router.get("/api/ai/per-user")
+@router.get("/ai/per-user")
 def ai_per_user(request: Request, days: int = Query(7, ge=1, le=90), limit: int = Query(30, ge=5, le=200)):
     """Số request, token và tốc độ trung bình theo từng user."""
     _auth(request)
@@ -318,7 +318,7 @@ def ai_per_user(request: Request, days: int = Query(7, ge=1, le=90), limit: int 
         result.append({k: (round(v, 2) if isinstance(v, float) else v) for k, v in d.items()})
     return {"data": result}
 
-@router.get("/api/ai/latency")
+@router.get("/ai/latency")
 def ai_latency(request: Request, days: int = Query(7, ge=1, le=30)):
     _auth(request)
     conn = _conn()
@@ -329,7 +329,7 @@ def ai_latency(request: Request, days: int = Query(7, ge=1, le=30)):
     conn.close()
     return _percentile_response([r["latency_ms"] for r in rows])
 
-@router.get("/api/overview")
+@router.get("/overview")
 def overview(request: Request, days: int = Query(7, ge=1, le=90)):
     _auth(request)
     conn = _conn()
@@ -350,7 +350,7 @@ def overview(request: Request, days: int = Query(7, ge=1, le=90)):
             "avg_latency_ms": round(avg_lat, 1), "p95_latency_ms": round(p95_val, 1),
             "unique_users": unique_users, "total_chats": total_chats}
 
-@router.get("/api/requests/daily")
+@router.get("/requests/daily")
 def requests_daily(request: Request, days: int = Query(30, ge=1, le=365)):
     _auth(request)
     conn = _conn()
@@ -361,7 +361,7 @@ def requests_daily(request: Request, days: int = Query(30, ge=1, le=365)):
     conn.close()
     return {"data": [dict(r) for r in rows]}
 
-@router.get("/api/requests/hourly")
+@router.get("/requests/hourly")
 def requests_hourly(request: Request, days: int = Query(7, ge=1, le=30)):
     _auth(request)
     conn = _conn()
@@ -371,7 +371,7 @@ def requests_hourly(request: Request, days: int = Query(7, ge=1, le=30)):
     conn.close()
     return {"data": [dict(r) for r in rows]}
 
-@router.get("/api/latency/distribution")
+@router.get("/latency/distribution")
 def latency_dist(request: Request, days: int = Query(7, ge=1, le=30), path: str = Query(None)):
     _auth(request)
     conn = _conn()
@@ -385,7 +385,7 @@ def latency_dist(request: Request, days: int = Query(7, ge=1, le=30), path: str 
     conn.close()
     return _percentile_response([r["latency_ms"] for r in rows])
 
-@router.get("/api/requests/recent")
+@router.get("/requests/recent")
 def recent_requests(request: Request, limit: int = Query(100, ge=1, le=500)):
     _auth(request)
     conn = _conn()
@@ -400,7 +400,7 @@ def recent_requests(request: Request, limit: int = Query(100, ge=1, le=500)):
         result.append(d)
     return {"data": result}
 
-@router.get("/api/requests/top-paths")
+@router.get("/requests/top-paths")
 def top_paths(request: Request, days: int = Query(7, ge=1, le=30), limit: int = Query(20, ge=5, le=100)):
     _auth(request)
     conn = _conn()
@@ -410,7 +410,7 @@ def top_paths(request: Request, days: int = Query(7, ge=1, le=30), limit: int = 
     conn.close()
     return {"data": [dict(r) for r in rows]}
 
-@router.get("/api/models/usage")
+@router.get("/models/usage")
 def model_usage(request: Request, days: int = Query(7, ge=1, le=90)):
     _auth(request)
     conn = _conn()
@@ -423,7 +423,7 @@ def model_usage(request: Request, days: int = Query(7, ge=1, le=90)):
     conn.close()
     return {"by_model": [dict(r) for r in by_model], "daily": [dict(r) for r in daily]}
 
-@router.get("/api/errors")
+@router.get("/errors")
 def error_log(request: Request, days: int = Query(7, ge=1, le=30), limit: int = Query(200, ge=10, le=1000)):
     _auth(request)
     conn = _conn()
@@ -438,7 +438,7 @@ def error_log(request: Request, days: int = Query(7, ge=1, le=30), limit: int = 
         result.append(d)
     return {"data": result}
 
-@router.get("/api/users/activity")
+@router.get("/users/activity")
 def user_activity(request: Request, days: int = Query(7, ge=1, le=30)):
     _auth(request)
     conn = _conn()

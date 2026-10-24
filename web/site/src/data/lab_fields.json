@@ -1,0 +1,37 @@
+{
+  "infer": {
+    "model": { "label": "Mô hình", "source": "checkpoints", "initial": "SAI_35M", "width": "half" },
+    "checkpoint": { "label": "Checkpoint", "source": "checkpoints", "filter_by": "model", "display": "basename", "initial": "model/sft1_35M.pt", "width": "half" },
+    "device": { "label": "Thiết bị", "widget": "segmented" },
+    "prompts": {
+      "label": "Câu hỏi",
+      "widget": "lines",
+      "help": "Mỗi dòng một câu hỏi. Mặc định là benchmark của lab; sửa xong bấm \"Lưu vào benchmark\" để giữ cho lần sau."
+    },
+    "variants": {
+      "label": "Biến thể",
+      "min_items": 1,
+      "max_items": 4,
+      "initial": [
+        { "name": "beam5", "generation": { "strategy": "beam", "beam_size": 5 } },
+        { "name": "sample", "generation": { "strategy": "sample", "temperature": 0.8, "top_p": 0.95, "seed": 0 } }
+      ]
+    },
+    "variants[].name": { "label": "Tên", "summary": "{}" },
+    "variants[].decoder": { "label": "Decoder", "source": "registry:inference/decoder", "group": "advanced" },
+    "variants[].generation": { "label": "Cấu hình sinh", "inline": true },
+    "variants[].generation.strategy": { "label": "Chiến lược", "choices": ["auto", "beam", "greedy", "sample"], "widget": "segmented", "summary": "{}", "help": "auto: beam search." },
+    "variants[].generation.beam_size": { "label": "Beam size", "widget": "slider", "min": 1, "max": 10, "step": 1, "summary": "×{}", "visible_when": { "strategy": ["auto", "beam"] } },
+    "variants[].generation.length_penalty": { "label": "Length penalty", "widget": "slider", "min": 0, "max": 3, "step": 0.1, "visible_when": { "strategy": ["auto", "beam"] } },
+    "variants[].generation.temperature": { "label": "Nhiệt độ", "widget": "slider", "min": 0.05, "max": 2, "step": 0.05, "summary": "t={}", "visible_when": { "strategy": ["sample"] } },
+    "variants[].generation.top_p": { "label": "Top-p", "widget": "slider", "min": 0.05, "max": 1, "step": 0.05, "summary": "p={}", "visible_when": { "strategy": ["sample"] } },
+    "variants[].generation.max_new_tokens": { "label": "Số token tối đa", "min": 1, "max": 1024, "summary": "{} tok", "group": "advanced" },
+    "variants[].generation.stable_steps": { "label": "Dừng khi ổn định sau (bước)", "min": 1, "help": "Để trống: chạy tới hết beam.", "group": "advanced", "visible_when": { "strategy": ["auto", "beam"] } },
+    "variants[].generation.top_k": { "label": "Top-k", "min": 0, "help": "0: không giới hạn.", "group": "advanced", "visible_when": { "strategy": ["sample"] } },
+    "variants[].generation.seed": { "label": "Seed", "help": "Để trống: mỗi lần chạy ra kết quả khác.", "group": "advanced", "visible_when": { "strategy": ["sample"] } },
+    "variants[].generation.repetition_penalty": { "label": "Repetition penalty", "min": 0.01, "group": "advanced" },
+    "variants[].generation.no_repeat_ngram_size": { "label": "Cấm lặp n-gram cỡ", "min": 0, "help": "0: tắt.", "group": "advanced" },
+    "variants[].generation.lowercase": { "label": "Viết thường prompt", "group": "advanced" },
+    "variants[].generation.stop_sequences": { "hidden": true }
+  }
+}

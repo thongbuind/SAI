@@ -1,0 +1,23 @@
+---
+// ChatSidebar trên Figma: cuộc trò chuyện mới, tab "Của tôi" / "Cộng đồng", danh sách lịch sử.
+// Danh sách do script trong TryServer.astro điền; style trong styles/chat.css.
+import Icon from "../Icon.astro";
+import Button from "../Button.astro";
+import { url } from "../../lib/paths";
+---
+<aside class="chat-sidebar glass-elevated" id="chat-sidebar" aria-label="Lịch sử trò chuyện" hidden>
+  <div class="chat-sidebar-head">
+    <button class="icon-btn" type="button" id="chat-sidebar-close" aria-label="Thu gọn thanh bên"><Icon name="panel-left" /></button>
+    <a class="icon-btn" href={url("/")} aria-label="Về trang chủ"><Icon name="home" /></a>
+  </div>
+  <Button id="chat-new" icon="plus" block>Cuộc trò chuyện mới</Button>
+  <div class="chat-tabs" role="tablist" aria-label="Danh sách">
+    <button class="chat-tab" type="button" role="tab" id="chat-tab-mine" aria-controls="chat-panel-mine" aria-selected="true">Của tôi</button>
+    <button class="chat-tab" type="button" role="tab" id="chat-tab-community" aria-controls="chat-panel-community" aria-selected="false" tabindex="-1">Cộng đồng</button>
+  </div>
+  <nav class="history" aria-label="Cuộc trò chuyện">
+    <div class="history-panel" role="tabpanel" id="chat-panel-mine" aria-labelledby="chat-tab-mine"></div>
+    <div class="history-panel" role="tabpanel" id="chat-panel-community" aria-labelledby="chat-tab-community" hidden></div>
+  </nav>
+  <div class="chat-sidebar-foot"><p class="t-caption">Lịch sử lưu trên máy chủ theo mã ẩn danh của trình duyệt này.</p></div>
+</aside>

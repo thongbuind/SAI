@@ -1,0 +1,163 @@
+---
+// Trang chủ. Bảng mô hình, phòng ban và pipeline đọc từ src/data (sinh bởi web/scripts/export_site_data.py).
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import Icon from "../components/Icon.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import PillarCard from "../components/PillarCard.astro";
+import ArchitectureDiagram from "../components/ArchitectureDiagram.astro";
+import ModelTable from "../components/ModelTable.astro";
+import Pipeline from "../components/Pipeline.astro";
+import CodeBlock from "../components/CodeBlock.astro";
+import Timeline from "../components/Timeline.astro";
+import Notice from "../components/Notice.astro";
+import Quote from "../components/Quote.astro";
+import { url } from "../lib/paths";
+import { GITHUB_URL } from "../lib/site";
+import { departmentIcon } from "../lib/departments";
+import { deployTarget } from "../lib/target";
+import models from "../data/models.json";
+import lab from "../data/lab.json";
+
+const largest = models.at(-1)!;
+const quickStart = `from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model_id = "${largest.repo_id}"
+tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True)
+
+messages = [
+    {"role": "system", "content": "Bạn là trợ lý trả lời ngắn gọn."},
+    {"role": "user", "content": "Trí tuệ nhân tạo là gì"},
+]
+print(model.generate_response(tokenizer=tokenizer, messages=messages))`;
+// /try/ là hướng dẫn tải ở bản static và là chat ở bản server, nên lời dẫn tới đó khác nhau.
+const TRY_COPY = {
+  static: { link: "Hướng dẫn chi tiết", title: "Thử SAI", emphasis: "trên máy của bạn", description: "Chọn cỡ mô hình, cài thư viện, chạy vài dòng Python." },
+  server: { link: "Trò chuyện với SAI", title: "Trò chuyện", emphasis: "với SAI ngay bây giờ", description: "Hỏi bằng tiếng Việt ngay trên trình duyệt, chọn cỡ mô hình bạn muốn." },
+}[deployTarget()];
+---
+<BaseLayout title="SAI · Mô hình ngôn ngữ thuần Việt" description="SAI là mô hình ngôn ngữ thuần Việt xây từ con số 0, mở toàn bộ kiến trúc, code huấn luyện, trọng số và Foundation Lab." current="home">
+  <div class="container">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 class="t-display-hero" id="hero-title">SAI</h1>
+      <p class="t-eyebrow">powered by Nidai</p>
+      <p class="t-lead">Mô hình ngôn ngữ <strong>thuần Việt</strong>, xây từ con số 0. Mở toàn bộ kiến trúc, code huấn luyện, trọng số, và một lab để bạn tự thí nghiệm.</p>
+      <div class="hero-actions">
+        <Button variant="primary" size="lg" icon="bolt" href={url("/try/")}>Trải nghiệm ngay</Button>
+        <Button variant="secondary" size="lg" trailingIcon="arrow-right" href={url("/lab/quickstart/")}>Khám phá Foundation Lab</Button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="why-title">
+      <SectionHeader align="center" id="why-title" overline="01 · Vì sao SAI" title="Một LLM tiếng Việt" emphasis="bạn có thể đọc hết" description="SAI nhỏ có chủ đích: đủ nhỏ để một người hiểu được toàn bộ, đủ thật để huấn luyện, phát hành và trò chuyện." />
+      <div class="grid-3">
+        <PillarCard icon="code" title="Xây từ con số 0">Không fine-tune từ mô hình có sẵn. Tokenizer, kiến trúc, vòng huấn luyện và chat template đều viết trong repo này.</PillarCard>
+        <PillarCard icon="cpu" title="Chạy trên máy phổ thông">{`Ba cỡ ${models.map(m => m.label).join(", ")}. Bản nhỏ chạy được trên CPU laptop, bản lớn tận dụng CUDA hoặc Apple MPS.`}</PillarCard>
+        <PillarCard icon="flask" title="Mở và tái lập được" href={url("/lab/quickstart/")} linkLabel="Xem Foundation Lab">Mỗi run ghi lại config đã resolve, commit git và dữ liệu đã dùng. Thêm biến thể chỉ bằng một dòng config.</PillarCard>
+      </div>
+    </section>
+
+    <section class="section" id="models" aria-labelledby="arch-title">
+      <div class="split">
+        <div class="split-text">
+          <SectionHeader id="arch-title" overline="02 · Kiến trúc" title="Decoder-only," emphasis="gọn và hiện đại" description="Pre-norm RMSNorm, Grouped Query Attention với RoPE, FFN SwiGLU không bias, và lm head chia sẻ trọng số với embedding." />
+        </div>
+        <ArchitectureDiagram />
+      </div>
+      <div class="table"><ModelTable /></div>
+    </section>
+
+    <section class="section" aria-labelledby="lab-title">
+      <div class="split">
+        <div class="split-text">
+          <SectionHeader id="lab-title" overline="03 · Foundation Lab" title="Một lab để" emphasis="ai cũng thí nghiệm được" description="Lab tổ chức như các phòng ban. Mỗi phòng sở hữu một registry; thêm biến thể bằng cách đăng ký rồi chọn qua config, không sửa code phòng khác.">
+            <div><Button variant="primary" size="md" trailingIcon="arrow-right" href={url("/lab/quickstart/")}>Vào Foundation Lab</Button></div>
+          </SectionHeader>
+        </div>
+        <div class="lab-side">
+          <nav class="department-links" aria-label="Các phòng ban">
+            {lab.departments.map(department => (
+              <a href={url("/lab/extending/#registry")}>
+                <Icon name={departmentIcon(department.code)} />
+                <span><b>{department.name.replace(/^Phòng /, "")}</b><code>{department.code}</code></span>
+              </a>
+            ))}
+          </nav>
+          <Pipeline vertical />
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="start-title">
+      <div class="grid-2">
+        <SectionHeader id="start-title" overline="04 · Bắt đầu nhanh" title="Chạy thử với" emphasis="vài dòng Python" description="Trọng số có trên Hugging Face và tải được bằng Transformers. Lần chạy đầu tự tải model, tokenizer và config; các lần sau dùng bộ nhớ đệm.">
+          <div><Button size="sm" trailingIcon="arrow-right" href={url("/try/")}>{TRY_COPY.link}</Button></div>
+        </SectionHeader>
+        <CodeBlock code={quickStart} lang="python" title="quick_start.py" />
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="journey-title">
+      <div class="grid-2">
+        <SectionHeader id="journey-title" overline="05 · Hành trình" title="Từ đồ án sinh viên" emphasis="đến dự án mở" description="Mỗi giai đoạn là một bước đổi cách làm, không chỉ thêm tính năng." />
+        <Timeline items={[
+          { phase: "dev2", status: "done", title: "Ba cỡ mô hình và web chat", description: `Pipeline pretrain → SFT1 → SFT2, phát hành ${models.map(m => m.label).join("/")} trên Hugging Face, web chat có lịch sử và cộng đồng.` },
+          { phase: "dev3", status: "current", title: "Foundation Lab: dự án mở", description: "Lab chia phòng ban, config nghiêm ngặt, lineage cho mọi run, quy ước phiên bản devX.Y.Z cho từng thành phần." },
+          { phase: "tiếp theo", status: "planned", title: "Phương pháp huấn luyện mới", description: "Distill, DPO, RLHF trong phòng Phương pháp huấn luyện." },
+        ]} />
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="notice-title">
+      <SectionHeader align="center" id="notice-title" overline="06 · Trước khi dùng" title="Một vài điều" emphasis="bạn nên biết" />
+      <div class="grid-3">
+        <Notice title="Dự án học thuật, quy mô nhỏ">SAI dùng để học và nghiên cứu cách một LLM được tạo ra, không thay thế các mô hình thương mại.</Notice>
+        <Notice tone="warning" title="Dữ liệu hạn chế">Lượng dữ liệu huấn luyện còn nhỏ nên kiến thức của mô hình hẹp và có thể lỗi thời.</Notice>
+        <Notice tone="danger" title="Hallucination nặng">Mô hình thường tự bịa thông tin. Hãy kiểm chứng mọi câu trả lời quan trọng với nguồn tin cậy.</Notice>
+      </div>
+      <div class="quote"><Quote author="Nidai" role="Tác giả · sinh viên · builder">"Bước cùng kỷ nguyên vươn mình của dân tộc Việt Nam hùng cường"</Quote></div>
+    </section>
+
+    <section class="section cta" aria-labelledby="cta-title">
+      <SectionHeader align="center" id="cta-title" overline="Bắt đầu" title={TRY_COPY.title} emphasis={TRY_COPY.emphasis} description={TRY_COPY.description} />
+      <div class="hero-actions">
+        <Button variant="primary" size="lg" icon="bolt" href={url("/try/")}>Trải nghiệm ngay</Button>
+        <Button variant="secondary" size="lg" icon="github" href={GITHUB_URL} external>Xem trên GitHub</Button>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .hero { min-height: 100svh; padding-block: calc(var(--size-nav-height) + var(--space-20)) var(--space-12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-6); text-align: center; }
+  .hero h1, .hero p { margin: 0; }
+  .t-display-hero { padding-left: 0.18em; }
+  .hero .t-eyebrow { margin-top: calc(-1 * var(--space-4)); }
+  .t-lead { max-width: 600px; }
+  .t-lead strong { color: var(--text-primary); font-weight: 600; }
+  .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-top: var(--space-4); }
+  .section { display: flex; flex-direction: column; gap: var(--space-12); }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); align-items: start; }
+  .split { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: var(--space-12); align-items: start; }
+  .split-text { position: sticky; top: 96px; }
+  .lab-side { display: flex; flex-direction: column; gap: var(--space-4); }
+  .department-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+  .department-links a { display: flex; align-items: center; gap: var(--space-3); min-width: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--border-default); background: var(--surface-base); text-decoration: none; color: var(--text-accent); }
+  .department-links a:hover { border-color: var(--border-strong); }
+  .department-links b { display: block; font: 500 13px/1.3 var(--font-sans); color: var(--text-primary); }
+  .department-links code { padding: 0; background: none; font-size: 11px; color: var(--text-tertiary); }
+  .quote { margin-top: calc(-1 * var(--space-4)); }
+  .cta { align-items: center; }
+  @media (max-width: 900px) {
+    .grid-3, .grid-2, .split { grid-template-columns: 1fr; }
+    .split-text { position: static; }
+    .department-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    .t-display-hero { letter-spacing: 0.08em; }
+    .hero-actions { flex-direction: column; width: 100%; }
+    .hero-actions :global(.btn) { width: 100%; }
+  }
+</style>

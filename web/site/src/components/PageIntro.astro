@@ -1,0 +1,22 @@
+---
+// Phần mở đầu trang tạm của Mốc 1: overline, tiêu đề có phần nhấn, mô tả và chỗ cho nút. Nội dung thật thay ở Mốc 2–4.
+interface Props {
+  overline: string;
+  title: string;
+  emphasis: string;
+  description: string;
+}
+const { overline, title, emphasis, description } = Astro.props;
+---
+<section class="intro container">
+  <p class="t-overline">{overline}</p>
+  <h1 class="t-h1">{title} <em>{emphasis}</em></h1>
+  <p class="t-large">{description}</p>
+  <div class="actions"><slot /></div>
+</section>
+
+<style>
+  .intro { padding-block: calc(var(--space-24) + 32px) var(--space-24); display: flex; flex-direction: column; gap: var(--space-5); }
+  .intro p, .intro h1 { margin: 0; max-width: var(--size-prose-max); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); }
+</style>

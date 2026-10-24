@@ -1,0 +1,15 @@
+---
+// IconChip trên Figma: ô vuông 36px chứa icon, dùng trong thẻ.
+import Icon from "./Icon.astro";
+import type { IconName } from "../lib/icons";
+
+interface Props {
+  icon: IconName;
+}
+const { icon } = Astro.props;
+---
+<span class="icon-chip"><Icon name={icon} /></span>
+
+<style>
+  .icon-chip { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--fill-accent-muted); color: var(--text-accent); }
+</style>

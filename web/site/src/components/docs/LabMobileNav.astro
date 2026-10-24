@@ -1,0 +1,26 @@
+---
+// Sidebar Lab thu thành nút "Mục lục tài liệu" cho màn hẹp. Trang dùng nó tự quyết định mốc màn hình hiện/ẩn
+// qua class lab-mobile-nav (mặc định luôn hiện).
+import Icon from "../Icon.astro";
+import LabSidebar from "./LabSidebar.astro";
+import type { LabDoc } from "../../lib/docs";
+
+interface Props {
+  docs: LabDoc[];
+  currentId?: string;
+}
+const { docs, currentId } = Astro.props;
+---
+<details class="lab-mobile-nav">
+  <summary><Icon name="book" /><span>Mục lục tài liệu</span><Icon name="chevron-down" class="chevron" /></summary>
+  <LabSidebar docs={docs} currentId={currentId} />
+</details>
+
+<style>
+  .lab-mobile-nav { border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--surface-base); }
+  .lab-mobile-nav summary { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); cursor: pointer; list-style: none; font: 500 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+  .lab-mobile-nav summary::-webkit-details-marker { display: none; }
+  .lab-mobile-nav summary span { flex: 1; }
+  .lab-mobile-nav[open] :global(.chevron) { transform: rotate(180deg); }
+  .lab-mobile-nav :global(.sidebar) { padding: 0 var(--space-2) var(--space-3); }
+</style>

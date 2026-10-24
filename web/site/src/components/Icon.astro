@@ -1,0 +1,19 @@
+---
+// Icon nét SVG inline (không dùng sprite ngoài để khỏi phụ thuộc base path). Màu theo currentColor.
+import { ICONS, type IconName } from "../lib/icons";
+
+interface Props {
+  name: IconName;
+  size?: 12 | 16 | 20 | 26;
+  class?: string;
+}
+const { name, size = 16, class: className } = Astro.props;
+if (!(name in ICONS)) {
+  throw new Error(`Không có icon "${name}" trong src/lib/icons.ts`);
+}
+---
+<svg class:list={["icon", className]} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" set:html={ICONS[name]} />
+
+<style>
+  .icon { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+</style>

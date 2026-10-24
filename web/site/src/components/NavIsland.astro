@@ -1,0 +1,61 @@
+---
+// NavIsland trên Figma: desktop có liên kết, GitHub, đổi theme, CTA; mobile (≤ 768px) còn logo, đổi theme, nút mở MobileMenu.
+import Icon from "./Icon.astro";
+import Button from "./Button.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import { url } from "../lib/paths";
+import { NAV_LINKS, GITHUB_URL, type PageKey } from "../lib/site";
+
+interface Props {
+  current?: PageKey;
+}
+const { current } = Astro.props;
+---
+<nav class="nav-island glass-island" aria-label="Điều hướng chính" data-nav-island>
+  <a class="t-logo nav-logo" href={url("/")} aria-label="SAI, về trang chủ">SAI</a>
+  <span class="nav-divider" aria-hidden="true"></span>
+  <div class="nav-links">
+    {NAV_LINKS.map(link => (
+      <a class="nav-link" href={url(link.path)} aria-current={link.key === current ? "page" : undefined}>{link.label}</a>
+    ))}
+  </div>
+  <span class="nav-spacer"></span>
+  <a class="nav-icon nav-github" href={GITHUB_URL} target="_blank" rel="noopener" aria-label="Mã nguồn trên GitHub"><Icon name="github" /></a>
+  <ThemeToggle />
+  <Button class="nav-cta" variant="primary" size="sm" href={url("/try/")}>Trải nghiệm</Button>
+  <button class="nav-icon nav-menu-button" type="button" data-menu-open aria-label="Mở menu" aria-controls="mobile-menu" aria-expanded="false"><Icon name="menu" /></button>
+</nav>
+
+<style>
+  /* --nav-control-height: nút trong navbar (icon, Trải nghiệm) cùng cao; --nav-inset: khoảng hở đều trên, dưới, phải. */
+  .nav-island { --nav-control-height: 32px; --nav-inset: calc((var(--size-nav-height) - var(--nav-control-height)) / 2); position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 50; height: var(--size-nav-height); max-width: calc(100vw - 32px); display: flex; align-items: center; gap: var(--space-1); padding: 0 var(--nav-inset) 0 var(--space-4); border-radius: var(--radius-pill); background: var(--surface-island); border: 1px solid var(--border-default); box-shadow: var(--elevation-2); white-space: nowrap; animation: island-in var(--duration-slow) var(--easing-spring) both; transition: border-color var(--duration-base), box-shadow var(--duration-base); }
+  .nav-island.is-scrolled { border-color: var(--border-strong); box-shadow: var(--elevation-2), 0 4px 40px rgb(var(--color-accent) / var(--alpha-32)); }
+  .nav-logo { text-decoration: none; padding-right: var(--space-2); }
+  .nav-divider { width: 1px; height: 18px; margin: 0 var(--space-1); background: var(--border-strong); }
+  .nav-links { display: flex; }
+  .nav-link { padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill); color: var(--text-tertiary); text-decoration: none; font: 500 13px/1 var(--font-sans); transition: color var(--duration-fast), background-color var(--duration-fast); }
+  .nav-link:hover { color: var(--text-accent); background: var(--fill-accent-hover); }
+  .nav-link[aria-current="page"] { color: var(--text-primary); background: var(--fill-accent-muted); }
+  .nav-icon { display: inline-grid; place-items: center; width: var(--nav-control-height); height: var(--nav-control-height); flex: none; border: 0; border-radius: var(--radius-pill); background: none; color: var(--text-tertiary); cursor: pointer; text-decoration: none; transition: background-color var(--duration-fast), color var(--duration-fast); }
+  .nav-icon:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
+  .nav-island :global(.nav-cta) { height: var(--nav-control-height); padding-block: 0; }
+  .nav-menu-button { display: none; }
+  @keyframes island-in { from { opacity: 0; transform: translateX(-50%) scale(0.88); } }
+  @media (max-width: 768px) {
+    .nav-island { top: calc(12px + env(safe-area-inset-top, 0px)); width: calc(100vw - 32px); }
+    .nav-links, .nav-divider, .nav-github, .nav-island :global(.nav-cta) { display: none; }
+    .nav-spacer { flex: 1; }
+    .nav-menu-button { display: inline-grid; }
+  }
+</style>
+
+<script>
+  // Navbar chuyển sang trạng thái Scrolled khi cuộn quá ngưỡng.
+  const SCROLLED_AFTER_PX = 40;
+  const nav = document.querySelector("[data-nav-island]");
+  if (nav) {
+    const update = () => nav.classList.toggle("is-scrolled", window.scrollY > SCROLLED_AFTER_PX);
+    window.addEventListener("scroll", update, { passive: true });
+    update();
+  }
+</script>

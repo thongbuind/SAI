@@ -1,0 +1,33 @@
+---
+// Một bước trong StepList: ô số tự đánh theo thứ tự, tiêu đề, mô tả và nội dung tuỳ ý (code, bảng...).
+interface Props {
+  title: string;
+  description?: string;
+  headingLevel?: 2 | 3;
+}
+const { title, description, headingLevel = 3 } = Astro.props;
+const Heading = headingLevel === 2 ? "h2" : "h3";
+---
+<li class="step">
+  <span class="rail" aria-hidden="true"><span class="marker"></span></span>
+  <div class="body">
+    <div class="head">
+      <Heading class="t-h3">{title}</Heading>
+      <slot name="aside" />
+    </div>
+    {description && <p class="t-small">{description}</p>}
+    <slot />
+  </div>
+</li>
+
+<style>
+  .step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--space-5); counter-increment: step; }
+  .rail { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+  .rail::after { content: ""; flex: 1; width: 2px; background: var(--border-subtle); }
+  .step:last-child .rail::after { display: none; }
+  .marker { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--gradient-brand); color: var(--text-on-accent); box-shadow: var(--glow); font: 500 13px/1 var(--font-sans); }
+  .marker::before { content: counter(step); }
+  .body { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; padding-top: 2px; padding-bottom: var(--space-10); }
+  .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .head h2, .head h3, .body > p { margin: 0; }
+</style>

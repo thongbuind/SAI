@@ -1,0 +1,11 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageIntro from "../components/PageIntro.astro";
+import Button from "../components/Button.astro";
+import { url } from "../lib/paths";
+---
+<BaseLayout title="Không tìm thấy trang · SAI" description="Trang bạn tìm không tồn tại.">
+  <PageIntro overline="404" title="Không tìm thấy" emphasis="trang này" description="Đường dẫn có thể đã đổi hoặc gõ nhầm.">
+    <Button variant="primary" size="md" icon="home" href={url("/")}>Về trang chủ</Button>
+  </PageIntro>
+</BaseLayout>

@@ -1,0 +1,26 @@
+---
+// Notice trên Figma: khối lưu ý. info cho thông tin dự án, warning cho giới hạn, danger cho rủi ro.
+import Icon from "./Icon.astro";
+
+interface Props {
+  tone?: "info" | "warning" | "danger";
+  title: string;
+}
+const { tone = "info", title } = Astro.props;
+---
+<div class:list={["notice", `notice-${tone}`]} role="note">
+  <Icon name={tone === "info" ? "info" : "alert"} size={20} />
+  <div class="notice-body">
+    <p class="t-h4">{title}</p>
+    <p class="t-small"><slot /></p>
+  </div>
+</div>
+
+<style>
+  .notice { display: flex; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); color: var(--text-accent); backdrop-filter: blur(var(--blur-content)); -webkit-backdrop-filter: blur(var(--blur-content)); }
+  .notice-warning { border-color: var(--border-warning); background: var(--fill-warning-subtle); color: var(--text-warning); }
+  .notice-danger { border-color: var(--border-danger); background: var(--fill-danger-subtle); color: var(--text-danger); }
+  .notice :global(.icon) { margin-top: 1px; }
+  .notice-body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+  .notice-body p { margin: 0; }
+</style>

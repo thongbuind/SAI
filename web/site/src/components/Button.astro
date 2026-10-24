@@ -1,0 +1,45 @@
+---
+// Button trên Figma: Variant (Primary/Secondary) × Size (Small/Medium/Large). Có href thì là <a>, không thì <button>.
+import Icon from "./Icon.astro";
+import type { IconName } from "../lib/icons";
+
+interface Props {
+  variant?: "primary" | "secondary";
+  size?: "sm" | "md" | "lg";
+  href?: string;
+  icon?: IconName;
+  trailingIcon?: IconName;
+  external?: boolean;
+  block?: boolean;
+  id?: string;
+  class?: string;
+}
+const { variant = "secondary", size = "md", href, icon, trailingIcon, external = false, block = false, id, class: className } = Astro.props;
+const classes = ["btn", `btn-${variant}`, `btn-${size}`, { "btn-block": block }, className];
+---
+{href ? (
+  <a class:list={classes} id={id} href={href} target={external ? "_blank" : undefined} rel={external ? "noopener" : undefined}>
+    {icon && <Icon name={icon} />}<slot />{trailingIcon && <Icon name={trailingIcon} />}
+  </a>
+) : (
+  <button class:list={classes} id={id} type="button">
+    {icon && <Icon name={icon} />}<slot />{trailingIcon && <Icon name={trailingIcon} />}
+  </button>
+)}
+
+<style>
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); border-radius: var(--radius-pill); border: 1px solid transparent; text-decoration: none; cursor: pointer; white-space: nowrap; position: relative; overflow: hidden; font-weight: 600; letter-spacing: 0.02em; transition: transform var(--duration-fast) var(--easing-standard), box-shadow var(--duration-base) var(--easing-standard), background-color var(--duration-base), color var(--duration-base); }
+  .btn-sm { padding: var(--space-2) var(--space-4); font-size: 13px; font-weight: 500; letter-spacing: 0; }
+  .btn-md { padding: var(--space-3) var(--space-6); font-size: 15px; }
+  .btn-lg { padding: var(--space-4) var(--space-8); font-size: 15px; }
+  .btn-block { width: 100%; }
+  .btn-primary { background: var(--gradient-brand); border-color: var(--border-strong); color: var(--text-on-accent); box-shadow: var(--glow); }
+  /* Vệt sáng quét qua khi hover. */
+  .btn-primary::after { content: ""; position: absolute; top: -50%; left: -75%; width: 50%; height: 200%; background: linear-gradient(90deg, transparent, rgb(var(--color-highlight) / var(--alpha-12)), transparent); transform: skewX(-20deg); transition: left 0.5s ease; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--glow-hover); }
+  .btn-primary:hover::after { left: 125%; }
+  .btn-primary:active { transform: translateY(0); box-shadow: none; }
+  .btn-secondary { background: var(--fill-accent-subtle); border-color: var(--border-strong); color: var(--text-secondary); backdrop-filter: blur(var(--blur-control)); -webkit-backdrop-filter: blur(var(--blur-control)); }
+  .btn-secondary:hover { background: var(--fill-accent-hover); color: var(--text-primary); transform: translateY(-1px); }
+  .btn-secondary:active { background: var(--fill-accent-active); transform: none; }
+</style>

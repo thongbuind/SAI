@@ -1,0 +1,26 @@
+---
+// Breadcrumb của các trang Lab (tài liệu, bàn thử nghiệm): mục có href là liên kết, mục cuối là trang hiện tại.
+interface Crumb {
+  label: string;
+  href?: string;
+}
+interface Props {
+  items: Crumb[];
+}
+const { items } = Astro.props;
+---
+<nav class="breadcrumb" aria-label="breadcrumb">
+  {items.map((item, index) => (
+    <>
+      {index > 0 && <span aria-hidden="true">/</span>}
+      {item.href ? <a href={item.href}>{item.label}</a> : <span aria-current={index === items.length - 1 ? "page" : undefined}>{item.label}</span>}
+    </>
+  ))}
+</nav>
+
+<style>
+  .breadcrumb { display: flex; flex-wrap: wrap; gap: var(--space-2); font: 500 13px/1.4 var(--font-sans); color: var(--text-tertiary); }
+  .breadcrumb a { text-decoration: none; }
+  .breadcrumb a:hover { color: var(--text-primary); }
+  .breadcrumb [aria-current] { color: var(--text-primary); }
+</style>

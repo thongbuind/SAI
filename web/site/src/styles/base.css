@@ -1,0 +1,61 @@
+/* Nền tảng dùng chung mọi trang: reset, vật liệu kính, text style, khung nội dung. Style riêng của component nằm trong file .astro. */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--surface-page); color: var(--text-primary); font: 400 15px/1.7 var(--font-sans); overflow-x: hidden; }
+img, video { max-width: 100%; display: block; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Khung nội dung: bề rộng tối đa size-content-max, lề hai bên tối thiểu 16px và tránh vùng an toàn của máy. */
+.container { width: 100%; max-width: calc(var(--size-content-max) + 2 * max(16px, env(safe-area-inset-left, 0px))); margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* ===== Vật liệu kính: mỗi element dùng đúng một mức ===== */
+.glass-content { backdrop-filter: blur(var(--blur-content)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur-content)) saturate(1.4); }
+.glass-control { backdrop-filter: blur(var(--blur-control)); -webkit-backdrop-filter: blur(var(--blur-control)); }
+.glass-panel { backdrop-filter: blur(var(--blur-panel)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur-panel)) saturate(1.4); }
+.glass-elevated { backdrop-filter: blur(var(--blur-elevated)) saturate(1.5); -webkit-backdrop-filter: blur(var(--blur-elevated)) saturate(1.5); }
+.glass-island { backdrop-filter: blur(var(--blur-island)) saturate(1.6); -webkit-backdrop-filter: blur(var(--blur-island)) saturate(1.6); }
+
+/* ===== Text style: khớp text style trên Figma ===== */
+.t-display-hero { font: 800 clamp(88px, 16vw, 160px)/1 var(--font-display); letter-spacing: 0.18em; background: var(--gradient-title); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 60px rgb(var(--color-accent) / var(--alpha-48))); }
+.t-logo { font: 700 17px/1 var(--font-display); letter-spacing: 0.16em; background: var(--gradient-logo); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.t-h1 { font: 700 clamp(36px, 5vw, 64px)/1.1 var(--font-sans); letter-spacing: -0.02em; color: var(--text-primary); text-wrap: balance; }
+.t-h2 { font: 600 clamp(28px, 3.6vw, 44px)/1.2 var(--font-sans); letter-spacing: -0.01em; color: var(--text-primary); text-wrap: balance; }
+.t-h1 em, .t-h2 em { font-style: italic; font-weight: 300; color: var(--text-accent); }
+.t-h3 { font: 600 20px/1.4 var(--font-sans); color: var(--text-primary); }
+.t-h4 { font: 600 15px/1.4 var(--font-sans); color: var(--text-primary); }
+.t-lead { font: 300 20px/1.6 var(--font-sans); color: var(--text-secondary); }
+.t-large { font: 300 17px/1.8 var(--font-sans); color: var(--text-secondary); }
+.t-small { font: 400 13px/1.7 var(--font-sans); color: var(--text-secondary); }
+.t-caption { font: 400 12px/1.5 var(--font-sans); color: var(--text-tertiary); }
+.t-overline { font: italic 400 13px/1 var(--font-serif); letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-accent); }
+.t-eyebrow { font: italic 400 16px/1.4 var(--font-serif); letter-spacing: 0.08em; color: var(--text-tertiary); }
+
+/* Code tô màu bằng Shiki theme "css-variables" (component <Code> và khối code trong Markdown): ánh xạ sang token syntax. */
+.astro-code {
+  --astro-code-background: var(--surface-terminal);
+  --astro-code-foreground: var(--code-text);
+  --astro-code-token-keyword: var(--syntax-keyword);
+  --astro-code-token-string: var(--syntax-string);
+  --astro-code-token-string-expression: var(--syntax-string);
+  --astro-code-token-function: var(--syntax-function);
+  --astro-code-token-constant: var(--syntax-number);
+  --astro-code-token-parameter: var(--syntax-class);
+  --astro-code-token-punctuation: var(--code-text);
+  --astro-code-token-link: var(--syntax-boolean);
+  --astro-code-token-comment: var(--code-muted);
+  margin: 0; padding: var(--space-5); overflow-x: auto; font: 400 13px/1.75 var(--font-mono); tab-size: 4;
+}
+code:not(.astro-code code) { font: 400 0.86em/1.4 var(--font-mono); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--fill-accent-muted); color: var(--text-accent); }
+
+/* Section chung của các trang nội dung. */
+.section { padding-block: var(--space-24); border-top: 1px solid var(--border-subtle); }
+@media (max-width: 900px) { .section { padding-block: var(--space-16); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

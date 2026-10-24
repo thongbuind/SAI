@@ -1,0 +1,8 @@
+---
+// Danh sách bước có đánh số (Step trên Figma). Mỗi bước là một <Step> đặt bên trong.
+---
+<ol class="step-list"><slot /></ol>
+
+<style>
+  .step-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; counter-reset: step; }
+</style>

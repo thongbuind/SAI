@@ -1,0 +1,89 @@
+---
+// ModelPickerCard trên Figma, ghép thành radio group. Chọn mô hình thì mọi chỗ ghi model_id trên trang đổi theo:
+// - phần tử [data-model-id]: thay nội dung chữ;
+// - phần tử [data-model-link]: thay href sang trang Hugging Face của mô hình;
+// - vùng [data-model-scope] (vd. khối code): thay mọi lần xuất hiện của model_id cũ trong chữ.
+import Badge from "./Badge.astro";
+import Icon from "./Icon.astro";
+import models from "../data/models.json";
+import { formatMillions } from "../lib/text";
+
+interface Props {
+  selected: string;
+  notes: Record<string, { tag: string; text: string }>;
+}
+const { selected, notes } = Astro.props;
+for (const model of models) {
+  if (!notes[model.name]) throw new Error(`ModelPicker thiếu ghi chú cho ${model.name}`);
+}
+if (!models.some(model => model.name === selected)) throw new Error(`Không có mô hình ${selected} trong models.json`);
+
+const BYTES_PER_FP32 = 4;
+const size = (bytes: number) => bytes >= 1e9
+  ? `${(bytes / 1e9).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} GB`
+  : `${Math.round(bytes / 1e6).toLocaleString("vi-VN")} MB`;
+---
+<fieldset class="picker">
+  <legend class="t-h3">Chọn cỡ mô hình</legend>
+  <div class="cards">
+    {models.map(model => (
+      <label class="card glass-panel">
+        <input type="radio" name="model" value={model.repo_id} data-url={model.url} checked={model.name === selected} />
+        <span class="top">
+          <span class="radio" aria-hidden="true"></span>
+          <span class="t-h3 name">SAI {model.label}</span>
+          <Badge tone="neutral">{notes[model.name].tag}</Badge>
+        </span>
+        <span class="t-small">{notes[model.name].text}</span>
+        <span class="meta">
+          <span><Icon name="layers" />{formatMillions(model.parameters)} triệu tham số</span>
+          <span><Icon name="hard-drive" />≈ {size(model.parameters * BYTES_PER_FP32)} trọng số ở fp32</span>
+          <span><Icon name="cpu" />{model.num_layers} layer · {model.num_heads} Q head · {model.num_kv_heads} KV head</span>
+        </span>
+      </label>
+    ))}
+  </div>
+  <p class="t-caption note">Bộ nhớ trọng số tính bằng số tham số × 4 byte; khi chạy cần thêm bộ nhớ cho KV cache và thư viện.</p>
+</fieldset>
+
+<style>
+  .picker { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+  legend { padding: 0; margin-bottom: var(--space-5); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); }
+  .card { position: relative; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); cursor: pointer; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); transition: border-color var(--duration-base), box-shadow var(--duration-base); }
+  .card:hover { border-color: var(--border-strong); box-shadow: var(--elevation-2); }
+  /* Thẻ được chọn: viền 2px; padding bớt 1px để nội dung không xê dịch. */
+  .card:has(input:checked) { padding: calc(var(--space-6) - 1px); border: 2px solid var(--border-focus); background: var(--fill-accent-muted); box-shadow: var(--elevation-2); }
+  .card:has(input:focus-visible) { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+  input { position: absolute; opacity: 0; pointer-events: none; }
+  .top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+  .name { white-space: nowrap; }
+  .top :global(.badge) { margin-left: auto; }
+  .radio { display: grid; place-items: center; width: 18px; height: 18px; flex: none; border-radius: 50%; border: 1.5px solid var(--border-strong); }
+  .card:has(input:checked) .radio { background: var(--fill-accent-solid); border-color: var(--fill-accent-solid); }
+  .card:has(input:checked) .radio::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-on-accent); }
+  .meta { display: flex; flex-direction: column; gap: var(--space-2); }
+  .meta span { display: flex; align-items: center; gap: var(--space-2); font-size: 12px; color: var(--text-secondary); }
+  .meta :global(.icon) { color: var(--text-tertiary); }
+  .note { margin: 0; }
+</style>
+
+<script>
+  const inputs = document.querySelectorAll<HTMLInputElement>("input[name=model]");
+  let current = [...inputs].find(input => input.checked)?.value ?? "";
+
+  function replaceText(root: Element, from: string, to: string) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.nodeValue?.includes(from)) node.nodeValue = node.nodeValue.split(from).join(to);
+    }
+  }
+
+  inputs.forEach(input => input.addEventListener("change", () => {
+    const next = input.value;
+    document.querySelectorAll("[data-model-id]").forEach(element => { element.textContent = next; });
+    document.querySelectorAll<HTMLAnchorElement>("[data-model-link]").forEach(link => { link.href = input.dataset.url!; });
+    document.querySelectorAll("[data-model-scope]").forEach(scope => replaceText(scope, current, next));
+    current = next;
+  }));
+</script>

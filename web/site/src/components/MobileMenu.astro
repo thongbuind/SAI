@@ -1,0 +1,68 @@
+---
+// MobileMenu trên Figma: mở từ nút menu của NavIsland, đóng bằng nút đóng, lớp nền mờ hoặc phím Esc.
+import Icon from "./Icon.astro";
+import Button from "./Button.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import { url } from "../lib/paths";
+import { NAV_LINKS, GITHUB_URL, type PageKey } from "../lib/site";
+
+interface Props {
+  current?: PageKey;
+}
+const { current } = Astro.props;
+---
+<div class="scrim" data-menu-scrim hidden></div>
+<div class="mobile-menu glass-elevated" id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" hidden>
+  <div class="menu-head">
+    <span class="t-logo">SAI</span>
+    <button class="menu-close" type="button" data-menu-close aria-label="Đóng menu"><Icon name="close" /></button>
+  </div>
+  {NAV_LINKS.map(link => (
+    <a class="menu-item" href={url(link.path)} aria-current={link.key === current ? "page" : undefined} data-menu-link>{link.label}</a>
+  ))}
+  <a class="menu-item" href={GITHUB_URL} target="_blank" rel="noopener">GitHub</a>
+  <hr />
+  <div class="menu-actions">
+    <ThemeToggle />
+    <Button variant="primary" size="md" block icon="bolt" href={url("/try/")}>Trải nghiệm</Button>
+  </div>
+</div>
+
+<style>
+  .scrim { position: fixed; inset: 0; z-index: 55; background: rgb(var(--color-surface-elevated) / var(--alpha-64)); }
+  .mobile-menu { position: fixed; z-index: 60; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-xl); background: var(--surface-overlay); border: 1px solid var(--border-default); box-shadow: var(--elevation-3); animation: menu-in var(--duration-base) var(--easing-out) both; }
+  .menu-head { display: flex; align-items: center; justify-content: space-between; padding-left: var(--space-2); }
+  .menu-close { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--text-tertiary); cursor: pointer; }
+  .menu-close:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
+  .menu-item { display: block; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); color: var(--text-secondary); text-decoration: none; font: 600 15px/1.5 var(--font-sans); }
+  .menu-item:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
+  .menu-item[aria-current="page"] { background: var(--fill-accent-muted); color: var(--text-primary); }
+  hr { width: 100%; height: 1px; margin: var(--space-2) 0; border: 0; background: var(--border-subtle); }
+  .menu-actions { display: flex; align-items: center; gap: var(--space-3); }
+  @keyframes menu-in { from { opacity: 0; transform: translateY(-8px); } }
+</style>
+
+<script>
+  const menu = document.getElementById("mobile-menu");
+  const scrim = document.querySelector<HTMLElement>("[data-menu-scrim]");
+  const openButton = document.querySelector<HTMLButtonElement>("[data-menu-open]");
+
+  function setOpen(open: boolean) {
+    if (!menu || !scrim || !openButton) return;
+    menu.hidden = !open;
+    scrim.hidden = !open;
+    openButton.setAttribute("aria-expanded", String(open));
+    document.body.style.overflow = open ? "hidden" : "";
+    if (open) menu.querySelector<HTMLElement>("[data-menu-close]")?.focus();
+    else openButton.focus();
+  }
+
+  openButton?.addEventListener("click", () => setOpen(true));
+  scrim?.addEventListener("click", () => setOpen(false));
+  menu?.querySelector("[data-menu-close]")?.addEventListener("click", () => setOpen(false));
+  // Liên kết tới anchor trên cùng trang (vd. /#models) không tải lại trang nên phải tự đóng menu.
+  menu?.querySelectorAll("[data-menu-link]").forEach(link => link.addEventListener("click", () => setOpen(false)));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && menu && !menu.hidden) setOpen(false);
+  });
+</script>

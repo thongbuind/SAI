@@ -1,0 +1,61 @@
+---
+// Route /lab/workbench/[department]/: bàn thử nghiệm của một phòng, cùng khung với trang tài liệu Lab
+// (navbar, sidebar Lab | kết quả | control center). Bố cục và các mốc màn hình trong styles/lab.css.
+// Không nằm trong src/pages: astro.config.mjs chỉ đăng ký route này khi build bản server, để bản static
+// không chứa JS/CSS của bàn thử nghiệm.
+import "../../styles/lab.css";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../docs/Breadcrumb.astro";
+import LabMobileNav from "../docs/LabMobileNav.astro";
+import LabSidebar from "../docs/LabSidebar.astro";
+import InferenceBench from "./InferenceBench.astro";
+import { labDocs } from "../../lib/docs";
+import { url } from "../../lib/paths";
+import { WORKBENCH_PAGES, type WorkbenchPage } from "../../lib/lab/workbench";
+
+export function getStaticPaths() {
+  return WORKBENCH_PAGES.map(page => ({ params: { department: page.department }, props: { page } }));
+}
+
+interface Props {
+  page: WorkbenchPage;
+}
+const { page } = Astro.props;
+const docs = await labDocs();
+const currentId = `workbench/${page.department}`;
+---
+<BaseLayout title={`${page.title} · Bàn làm việc · Foundation Lab`} description={page.description} current="lab">
+  <div class="wb" id="wb" data-open="">
+    <aside class="wb-side"><LabSidebar docs={docs} currentId={currentId} /></aside>
+    <InferenceBench command={page.command}>
+      <Breadcrumb items={[{ label: "Foundation Lab", href: url("/lab/") }, { label: "Bàn làm việc" }, { label: page.title }]} />
+      <LabMobileNav docs={docs} currentId={currentId} />
+      <header class="wb-header">
+        <h1 class="t-h1">{page.title}</h1>
+        <p class="t-lead">{page.description}</p>
+      </header>
+    </InferenceBench>
+    <div class="wb-scrim" id="wb-scrim" hidden></div>
+  </div>
+</BaseLayout>
+
+<script>
+  // Màn hẹp: control center là ngăn trượt; Esc, bấm nền mờ hoặc bấm Chạy thì đóng.
+  const wb = document.getElementById("wb")!;
+  const scrim = document.getElementById("wb-scrim")!;
+  const opener = document.getElementById("wb-open-control") as HTMLButtonElement;
+
+  function setControlOpen(open: boolean) {
+    wb.dataset.open = open ? "control" : "";
+    scrim.hidden = !open;
+    opener.setAttribute("aria-expanded", String(open));
+  }
+
+  opener.addEventListener("click", () => setControlOpen(true));
+  scrim.addEventListener("click", () => setControlOpen(false));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && wb.dataset.open) setControlOpen(false);
+  });
+  // InferenceBench phát sự kiện này khi gửi job: đóng control center để thấy kết quả.
+  window.addEventListener("workbench:job-submitted", () => setControlOpen(false));
+</script>

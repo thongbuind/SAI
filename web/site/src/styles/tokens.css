@@ -1,0 +1,198 @@
+/*
+ * SAI Web · Design System v2 — tokens.
+ * Bản chính thức của token web. Khớp với file Figma "SAI Web — Design System" (collections Palette, Color, Alpha, Layout, Typography, Motion).
+ * Thiết kế dark-first: bare :root là Dark; Light áp dụng khi hệ thống ở chế độ sáng
+ * (trừ khi người xem chọn Dark) hoặc khi data-theme="light".
+ */
+
+/* ===== Palette (chỉ kênh RGB, đổi theo theme) ===== */
+:root {
+  color-scheme: dark;
+  --color-bg: 14 10 26;
+  --color-bg-alt: 19 13 36;
+  --color-surface: 14 10 26;
+  --color-surface-raised: 18 10 35;
+  --color-surface-elevated: 10 6 22;
+  --color-text-primary: 232 231 252;
+  --color-text-secondary: 180 177 204;
+  --color-text-tertiary: 142 138 168;
+  --color-text-muted: 94 82 120;
+  --color-text-accent: 167 139 250;
+  --color-on-accent: 232 231 252;
+  --color-highlight: 232 231 252;
+  --color-accent-deep: 75 0 130;
+  --color-accent: 124 58 237;
+  --color-accent-strong: 109 40 217;
+  --color-accent-soft: 167 139 250;
+  --color-accent-pale: 196 181 253;
+  --color-shadow: 75 0 130;
+  --color-neutral-shadow: 0 0 0;
+  --color-success: 34 197 94;
+  --color-warning: 245 158 11;
+  --color-danger: 239 68 68;
+  --color-danger-text: 248 113 113;
+  --color-terminal-bg: 8 4 18;
+  --color-syntax-keyword: 214 107 212;
+  --color-syntax-module: 196 181 253;
+  --color-syntax-class: 103 212 232;
+  --color-syntax-function: 130 170 255;
+  --color-syntax-string: 114 198 123;
+  --color-syntax-number: 246 189 96;
+  --color-syntax-boolean: 86 182 247;
+  --color-terminal-dot-red: 255 96 92;
+  --color-terminal-dot-yellow: 255 189 68;
+  --color-terminal-dot-green: 0 202 78;
+  --color-particle-1: 124 58 237;
+  --color-particle-2: 75 0 130;
+  --color-particle-3: 232 231 252;
+  --color-particle-4: 167 139 250;
+  --color-particle-5: 196 181 253;
+  --color-particle-6: 109 40 217;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --color-bg: 248 246 255;
+    --color-bg-alt: 241 236 250;
+    --color-surface: 252 250 255;
+    --color-surface-raised: 248 244 255;
+    --color-surface-elevated: 236 228 247;
+    --color-text-primary: 59 27 90;
+    --color-text-secondary: 91 63 115;
+    --color-text-tertiary: 122 98 145;
+    --color-text-muted: 138 116 160;
+    --color-text-accent: 107 54 181;
+    --color-on-accent: 252 249 255;
+    --color-highlight: 255 255 255;
+    --color-accent-deep: 76 29 149;
+    --color-accent-pale: 157 121 225;
+    --color-shadow: 109 40 217;
+    --color-neutral-shadow: 76 29 149;
+    --color-success: 21 128 61;
+    --color-warning: 180 83 9;
+    --color-danger-text: 220 38 38;
+    --color-terminal-bg: 48 22 79;
+    --color-particle-2: 109 40 217;
+    --color-particle-3: 167 139 250;
+    --color-particle-4: 196 181 253;
+    --color-particle-5: 139 92 246;
+    --color-particle-6: 91 33 182;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: 248 246 255;
+  --color-bg-alt: 241 236 250;
+  --color-surface: 252 250 255;
+  --color-surface-raised: 248 244 255;
+  --color-surface-elevated: 236 228 247;
+  --color-text-primary: 59 27 90;
+  --color-text-secondary: 91 63 115;
+  --color-text-tertiary: 122 98 145;
+  --color-text-muted: 138 116 160;
+  --color-text-accent: 107 54 181;
+  --color-on-accent: 252 249 255;
+  --color-highlight: 255 255 255;
+  --color-accent-deep: 76 29 149;
+  --color-accent-pale: 157 121 225;
+  --color-shadow: 109 40 217;
+  --color-neutral-shadow: 76 29 149;
+  --color-success: 21 128 61;
+  --color-warning: 180 83 9;
+  --color-danger-text: 220 38 38;
+  --color-terminal-bg: 48 22 79;
+  --color-particle-2: 109 40 217;
+  --color-particle-3: 167 139 250;
+  --color-particle-4: 196 181 253;
+  --color-particle-5: 139 92 246;
+  --color-particle-6: 91 33 182;
+}
+
+/* ===== Alpha, Color (ngữ nghĩa), Layout, Typography, Motion — dùng chung mọi theme ===== */
+:root {
+  --alpha-04: 0.04; --alpha-08: 0.08; --alpha-12: 0.12; --alpha-16: 0.16; --alpha-24: 0.24;
+  --alpha-32: 0.32; --alpha-48: 0.48; --alpha-64: 0.64; --alpha-72: 0.72; --alpha-88: 0.88;
+
+  --surface-page: rgb(var(--color-bg));
+  --surface-page-alt: rgb(var(--color-bg-alt));
+  --surface-base: rgb(var(--color-surface) / var(--alpha-72));
+  --surface-raised: rgb(var(--color-surface-raised) / var(--alpha-72));
+  --surface-island: rgb(var(--color-surface-elevated) / var(--alpha-72));
+  --surface-overlay: rgb(var(--color-surface-elevated) / var(--alpha-88));
+  --surface-terminal: rgb(var(--color-terminal-bg) / var(--alpha-88));
+
+  --text-primary: rgb(var(--color-text-primary));
+  --text-secondary: rgb(var(--color-text-secondary));
+  --text-tertiary: rgb(var(--color-text-tertiary));
+  --text-disabled: rgb(var(--color-text-muted));
+  --text-accent: rgb(var(--color-text-accent));
+  --text-on-accent: rgb(var(--color-on-accent));
+  --text-danger: rgb(var(--color-danger-text));
+  --text-success: rgb(var(--color-success));
+  --text-warning: rgb(var(--color-warning));
+
+  --border-subtle: rgb(var(--color-accent) / var(--alpha-08));
+  --border-default: rgb(var(--color-accent) / var(--alpha-16));
+  --border-strong: rgb(var(--color-accent) / var(--alpha-32));
+  --border-focus: rgb(var(--color-text-accent));
+  --border-highlight: rgb(var(--color-highlight) / var(--alpha-12));
+  --border-danger: rgb(var(--color-danger) / var(--alpha-24));
+  --border-success: rgb(var(--color-success) / var(--alpha-24));
+  --border-warning: rgb(var(--color-warning) / var(--alpha-24));
+
+  --fill-accent-subtle: rgb(var(--color-accent) / var(--alpha-08));
+  --fill-accent-muted: rgb(var(--color-accent) / var(--alpha-12));
+  --fill-accent-hover: rgb(var(--color-accent) / var(--alpha-16));
+  --fill-accent-active: rgb(var(--color-accent) / var(--alpha-24));
+  --fill-accent-solid: rgb(var(--color-accent));
+  --fill-highlight: rgb(var(--color-highlight) / var(--alpha-04));
+  --fill-danger-subtle: rgb(var(--color-danger) / var(--alpha-08));
+  --fill-success-subtle: rgb(var(--color-success) / var(--alpha-08));
+  --fill-warning-subtle: rgb(var(--color-warning) / var(--alpha-08));
+
+  --gradient-brand: linear-gradient(135deg, rgb(var(--color-accent-deep) / var(--alpha-88)), rgb(var(--color-accent) / var(--alpha-88)));
+  --gradient-brand-soft: linear-gradient(135deg, rgb(var(--color-accent) / var(--alpha-08)), rgb(var(--color-accent-deep) / var(--alpha-12)));
+  --gradient-title: linear-gradient(150deg, rgb(var(--color-text-primary)) 0%, rgb(var(--color-accent-pale)) 45%, rgb(var(--color-accent)) 85%);
+  --gradient-logo: linear-gradient(135deg, rgb(var(--color-text-primary)) 30%, rgb(var(--color-accent)) 100%);
+  --gradient-accent-line: linear-gradient(90deg, var(--border-focus), transparent);
+
+  --shadow-inset-highlight: inset 0 1px 0 rgb(var(--color-highlight) / var(--alpha-08));
+  --elevation-1: 0 2px 16px rgb(var(--color-shadow) / var(--alpha-24)), var(--shadow-inset-highlight);
+  --elevation-2: 0 4px 32px rgb(var(--color-shadow) / var(--alpha-24)), var(--shadow-inset-highlight);
+  --elevation-3: 0 8px 40px rgb(var(--color-shadow) / var(--alpha-32)), 0 2px 8px rgb(var(--color-neutral-shadow) / var(--alpha-48)), var(--shadow-inset-highlight);
+  --glow: 0 4px 28px rgb(var(--color-accent) / var(--alpha-32));
+  --glow-hover: 0 8px 36px rgb(var(--color-accent) / var(--alpha-48));
+
+  --orb-1: rgb(var(--color-accent-deep) / var(--alpha-24));
+  --orb-2: rgb(var(--color-accent) / var(--alpha-16));
+  --orb-3: rgb(var(--color-accent-pale) / var(--alpha-08));
+
+  --syntax-keyword: rgb(var(--color-syntax-keyword));
+  --syntax-module: rgb(var(--color-syntax-module));
+  --syntax-class: rgb(var(--color-syntax-class));
+  --syntax-function: rgb(var(--color-syntax-function));
+  --syntax-string: rgb(var(--color-syntax-string));
+  --syntax-number: rgb(var(--color-syntax-number));
+  --syntax-boolean: rgb(var(--color-syntax-boolean));
+  /* Nền terminal luôn tối ở cả hai theme, nên chữ trong khối code lấy từ on-accent thay vì text-*. */
+  --code-text: rgb(var(--color-on-accent) / var(--alpha-88));
+  --code-muted: rgb(var(--color-on-accent) / var(--alpha-64));
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px;
+  --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px; --space-20: 80px; --space-24: 96px;
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px; --radius-pill: 999px;
+  --blur-content: 6px; --blur-control: 12px; --blur-panel: 20px; --blur-elevated: 24px; --blur-island: 28px; --blur-orb: 90px;
+  --size-nav-height: 44px; --size-content-max: 1120px; --size-prose-max: 720px; --size-chat-max: 760px; --size-sidebar: 200px; --size-lab-max: 1600px;
+
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --duration-fast: 150ms; --duration-base: 250ms; --duration-slow: 450ms; --duration-reveal: 750ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --easing-out: cubic-bezier(0, 0, 0.2, 1);
+}

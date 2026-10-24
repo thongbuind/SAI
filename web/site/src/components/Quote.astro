@@ -1,0 +1,25 @@
+---
+// Quote trên Figma: trích dẫn của tác giả.
+interface Props {
+  author: string;
+  role: string;
+}
+const { author, role } = Astro.props;
+---
+<figure class="quote">
+  <blockquote><slot /></blockquote>
+  <figcaption>
+    <span class="avatar" aria-hidden="true">{author.charAt(0)}</span>
+    <span><span class="t-h4 author">{author}</span><span class="t-caption">{role}</span></span>
+  </figcaption>
+</figure>
+
+<style>
+  .quote { position: relative; margin: 0; padding: var(--space-8) var(--space-10); display: flex; flex-direction: column; gap: var(--space-4); overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); backdrop-filter: blur(var(--blur-content)); -webkit-backdrop-filter: blur(var(--blur-content)); }
+  .quote::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--fill-accent-solid); }
+  blockquote { margin: 0; font: italic 300 24px/1.7 var(--font-serif); color: var(--text-primary); }
+  figcaption { display: flex; align-items: center; gap: var(--space-3); }
+  .avatar { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--gradient-brand); color: var(--text-on-accent); font: 500 12px/1 var(--font-sans); }
+  .author { display: block; }
+  @media (max-width: 600px) { .quote { padding: var(--space-6) var(--space-6) var(--space-6) var(--space-8); } blockquote { font-size: 20px; } }
+</style>

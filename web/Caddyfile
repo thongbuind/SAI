@@ -1,0 +1,5 @@
+# Caddy lo HTTPS và nén; mọi đường dẫn (site và /api) do app phục vụ.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:8000
+}

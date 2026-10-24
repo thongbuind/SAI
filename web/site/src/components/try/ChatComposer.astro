@@ -1,0 +1,26 @@
+---
+// Composer trên Figma: ô nhập, nút chia sẻ, chọn mô hình (ModelMenu), nút gửi.
+// Danh sách mô hình do script trong TryServer.astro điền từ /api/models; style trong styles/chat.css.
+import Icon from "../Icon.astro";
+import { MAX_MESSAGE_CHARS } from "../../lib/chatApi";
+---
+<div class="chat-dock" id="chat-dock">
+  <div class="composer-wrap">
+    <div class="model-menu glass-elevated" id="chat-model-menu" role="listbox" aria-labelledby="chat-model-menu-title" hidden>
+      <h4 class="t-overline" id="chat-model-menu-title">Chọn mô hình</h4>
+    </div>
+    <form class="composer glass-panel" id="chat-composer">
+      <label class="sr-only" for="chat-message">Tin nhắn</label>
+      <textarea id="chat-message" rows="1" maxlength={MAX_MESSAGE_CHARS} placeholder="Hỏi SAI bất cứ điều gì…"></textarea>
+      <div class="composer-row">
+        <button class="icon-btn" type="button" id="chat-share" aria-pressed="false" aria-label="Chia sẻ lên Cộng đồng" hidden><Icon name="share" /></button>
+        <span class="grow"></span>
+        <button class="model-select" type="button" id="chat-model-select" aria-haspopup="listbox" aria-expanded="false" aria-controls="chat-model-menu">
+          <Icon name="cpu" class="i-cpu" /><span id="chat-model-label">Đang tải…</span><Icon name="chevron-down" class="i-chev" />
+        </button>
+        <button class="send-btn" type="submit" id="chat-send" aria-label="Gửi" disabled><Icon name="send" /></button>
+      </div>
+    </form>
+    <p class="t-caption chat-disclaimer">SAI có thể bịa thông tin. Enter để gửi, Shift + Enter để xuống dòng.</p>
+  </div>
+</div>

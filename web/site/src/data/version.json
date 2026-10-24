@@ -1,0 +1,12 @@
+{
+  "model": "dev3.0.1",
+  "components": {
+    "rope": "dev3.0.1",
+    "attention": "dev3.0.1",
+    "ffn": "dev3.0.0",
+    "block": "dev3.0.1",
+    "modeling": "dev3.0.1",
+    "generate": "dev3.0.0",
+    "tokenizer": "dev3.0.0"
+  }
+}

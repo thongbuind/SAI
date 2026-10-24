@@ -1,0 +1,19 @@
+{
+  "name": "sai-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:static": "PUBLIC_DEPLOY_TARGET=static BASE_PATH=/SAI astro dev",
+    "dev:server": "PUBLIC_DEPLOY_TARGET=server astro dev",
+    "build:static": "PUBLIC_DEPLOY_TARGET=static BASE_PATH=/SAI astro build",
+    "build:server": "PUBLIC_DEPLOY_TARGET=server astro build",
+    "preview:static": "PUBLIC_DEPLOY_TARGET=static BASE_PATH=/SAI astro preview",
+    "preview:server": "PUBLIC_DEPLOY_TARGET=server astro preview"
+  },
+  "dependencies": {
+    "astro": "5.18.2"
+  },
+  "engines": {
+    "node": ">=20.3.0"
+  }
+}

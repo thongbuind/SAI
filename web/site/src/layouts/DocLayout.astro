@@ -1,0 +1,90 @@
+---
+// Trang tài liệu Lab: sidebar | bài viết | mục lục. Trên mobile sidebar thu thành nút "Mục lục tài liệu".
+import type { MarkdownHeading } from "astro";
+import BaseLayout from "./BaseLayout.astro";
+import Icon from "../components/Icon.astro";
+import LabSidebar from "../components/docs/LabSidebar.astro";
+import LabMobileNav from "../components/docs/LabMobileNav.astro";
+import Breadcrumb from "../components/docs/Breadcrumb.astro";
+import OnPageToc from "../components/docs/OnPageToc.astro";
+import { url } from "../lib/paths";
+import { GITHUB_URL } from "../lib/site";
+import type { LabDoc } from "../lib/docs";
+
+interface Props {
+  doc: LabDoc;
+  docs: LabDoc[];
+  headings: MarkdownHeading[];
+}
+const { doc, docs, headings } = Astro.props;
+const index = docs.findIndex(other => other.id === doc.id);
+const previous = docs[index - 1];
+const next = docs[index + 1];
+---
+<BaseLayout title={`${doc.data.title} · Foundation Lab`} description={doc.data.description} current="lab">
+  <div class="doc-layout">
+    <aside class="side"><LabSidebar docs={docs} currentId={doc.id} /></aside>
+    <article class="article">
+      <Breadcrumb items={[{ label: "Foundation Lab", href: url("/lab/") }, { label: doc.data.group }, { label: doc.data.title }]} />
+      <LabMobileNav docs={docs} currentId={doc.id} />
+      <header class="doc-header">
+        <h1 class="t-h1">{doc.data.title}</h1>
+        <p class="t-lead">{doc.data.description}</p>
+      </header>
+      <div class="prose"><slot /></div>
+      <nav class="pager" aria-label="Trang trước và sau">
+        {previous && <a href={url(`/lab/${previous.id}/`)}><span class="t-caption">← Trước</span><span class="t-h4">{previous.data.title}</span></a>}
+        {next && <a class="next" href={url(`/lab/${next.id}/`)}><span class="t-caption">Tiếp →</span><span class="t-h4">{next.data.title}</span></a>}
+      </nav>
+      <a class="edit" href={`${GITHUB_URL}/blob/main/web/site/src/content/lab/${doc.id}.md`} target="_blank" rel="noopener">Sửa trang này trên GitHub <Icon name="external" size={12} /></a>
+    </article>
+    <aside class="toc-column"><OnPageToc headings={headings} /></aside>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Cùng khung với Bàn làm việc (styles/lab.css, .wb): sidebar Lab đứng yên khi chuyển giữa hai loại trang. */
+  .doc-layout { max-width: var(--size-lab-max); margin-inline: auto; display: grid; grid-template-columns: var(--size-sidebar) minmax(0, 1fr) 200px; gap: var(--space-5); padding: calc(var(--space-24) + 16px) max(16px, env(safe-area-inset-right, 0px)) var(--space-16) max(16px, env(safe-area-inset-left, 0px)); }
+  .side, .toc-column { position: sticky; top: 88px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; }
+  .side { padding-right: var(--space-3); border-right: 1px solid var(--border-subtle); }
+  /* Khung rộng hơn bài viết: căn giữa bài viết trong cột thay vì để khoảng trống dồn về phía mục lục. */
+  .article { min-width: 0; width: 100%; max-width: var(--size-prose-max); justify-self: center; display: flex; flex-direction: column; gap: var(--space-5); }
+  .article > :global(.lab-mobile-nav) { display: none; }
+  .doc-header { display: flex; flex-direction: column; gap: var(--space-4); }
+  .doc-header h1, .doc-header p { margin: 0; }
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-top: var(--space-10); }
+  .pager a { display: flex; flex-direction: column; gap: 2px; padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); text-decoration: none; }
+  .pager a:hover { border-color: var(--border-strong); }
+  .pager .next { grid-column: 2; text-align: right; }
+  .edit { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 13px; color: var(--text-tertiary); text-decoration: none; }
+  .edit:hover { color: var(--text-primary); }
+
+  /* Nội dung Markdown. */
+  .prose { display: flex; flex-direction: column; gap: var(--space-5); color: var(--text-secondary); }
+  .prose :global(:is(h2, h3, p, ul, ol, pre, table, blockquote)) { margin: 0; }
+  .prose :global(h2) { margin-top: var(--space-8); font: 600 clamp(24px, 3vw, 32px)/1.25 var(--font-sans); color: var(--text-primary); scroll-margin-top: 96px; }
+  .prose :global(h3) { margin-top: var(--space-4); font: 600 20px/1.4 var(--font-sans); color: var(--text-primary); scroll-margin-top: 96px; }
+  .prose :global(:is(ul, ol)) { padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--space-2); }
+  .prose :global(a) { color: var(--text-accent); }
+  .prose :global(strong) { color: var(--text-primary); font-weight: 600; }
+  .prose :global(pre) { border-radius: var(--radius-lg); border: 1px solid var(--border-default); }
+  .prose :global(table) { display: block; overflow-x: auto; border-collapse: collapse; border: 1px solid var(--border-default); border-radius: var(--radius-lg); font-size: 13px; }
+  /* Ô có bề rộng tối thiểu để bảng cuộn ngang trên mobile thay vì bóp chữ thành nhiều dòng. */
+  .prose :global(:is(th, td)) { min-width: 120px; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
+  /* Đường dẫn dài trong code inline được ngắt dòng để không tràn khỏi cột. */
+  .prose :global(:not(pre) > code) { overflow-wrap: anywhere; }
+  /* Trong bảng thì giữ nguyên tên (vd. ATTENTION_KERNELS); bảng cuộn ngang thay vì cắt giữa tên. */
+  .prose :global(td code) { overflow-wrap: normal; white-space: nowrap; }
+  .prose :global(th) { background: var(--fill-accent-subtle); font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
+  .prose :global(tr:last-child td) { border-bottom: 0; }
+  /* Blockquote trong tài liệu là khối lưu ý (Notice, tone info). */
+  .prose :global(blockquote) { padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); color: var(--text-secondary); font-size: 14px; }
+
+  /* Cùng mốc với Bàn làm việc: dưới 1180 sidebar thu thành nút "Mục lục tài liệu". */
+  @media (max-width: 1179px) {
+    .doc-layout { grid-template-columns: minmax(0, 1fr); }
+    .side, .toc-column { display: none; }
+    .article > :global(.lab-mobile-nav) { display: block; }
+  }
+  @media (max-width: 899px) { .doc-layout { padding-top: 88px; } }
+</style>

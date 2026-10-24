@@ -1,0 +1,70 @@
+---
+// CodeBlock trên Figma: Kind=Code (có tên file) và Kind=Terminal (ba chấm, lệnh shell).
+// Tô màu bằng Shiki theme "css-variables"; màu ánh xạ sang token syntax trong base.css.
+import { Code } from "astro:components";
+import Icon from "./Icon.astro";
+
+interface Props {
+  code: string;
+  lang: "python" | "yaml" | "bash" | "text";
+  kind?: "code" | "terminal";
+  title?: string;
+  // Lệnh shell trong cột hẹp nên xuống dòng thay vì cuộn ngang.
+  wrap?: boolean;
+}
+const { code, lang, kind = "code", title, wrap = false } = Astro.props;
+const LANGUAGE_LABEL = { python: "Python", yaml: "YAML", bash: "bash", text: "" };
+---
+<div class:list={["code-block", { "is-terminal": kind === "terminal" }]}>
+  <div class="code-bar">
+    {kind === "terminal" && <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>}
+    {LANGUAGE_LABEL[lang] && <span class="language">{LANGUAGE_LABEL[lang]}</span>}
+    {title && <span class="file">{title}</span>}
+    <span class="grow"></span>
+    <button class="copy" type="button" data-copy-code aria-label="Sao chép"><Icon name="copy" /></button>
+  </div>
+  <Code code={code.trimEnd()} lang={lang} theme="css-variables" wrap={wrap} />
+</div>
+
+<style>
+  .code-block { min-width: 0; overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-terminal); box-shadow: var(--elevation-1); }
+  .code-bar { display: flex; align-items: center; gap: var(--space-2); padding: 6px var(--space-2) 6px var(--space-4); border-bottom: 1px solid rgb(var(--color-on-accent) / var(--alpha-12)); }
+  .dots { display: inline-flex; gap: 6px; margin-right: var(--space-1); }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; background: rgb(var(--color-terminal-dot-red)); }
+  .dots i:nth-child(2) { background: rgb(var(--color-terminal-dot-yellow)); }
+  .dots i:nth-child(3) { background: rgb(var(--color-terminal-dot-green)); }
+  .language { font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--code-muted); }
+  .file { font: 400 12px/1.6 var(--font-mono); color: var(--code-muted); }
+  .grow { flex: 1; }
+  .copy { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--code-muted); cursor: pointer; }
+  .copy:hover { background: rgb(var(--color-on-accent) / var(--alpha-08)); color: var(--code-text); }
+  .copy[data-copied="true"] { color: var(--syntax-string); }
+  .code-block :global(.astro-code) { border-radius: 0; }
+  /* Grammar bash coi mọi tham số không có ngoặc là string nên cả dòng lệnh bị tô xanh; ở terminal giữ chúng màu chữ thường. */
+  .is-terminal :global(.astro-code) { --astro-code-token-string: var(--code-text); }
+</style>
+
+<script>
+  // Sao chép code; khối terminal bỏ ký tự "$ " đầu dòng lệnh.
+  const COPIED_FOR_MS = 1500;
+  document.querySelectorAll<HTMLButtonElement>("[data-copy-code]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const pre = button.closest(".code-block")?.querySelector("pre");
+      if (!pre) return;
+      const text = pre.innerText.replace(/^\$ /gm, "");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // Trình duyệt không cho ghi clipboard: chọn sẵn đoạn code để người xem tự sao chép.
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        window.getSelection()?.removeAllRanges();
+        window.getSelection()?.addRange(range);
+        return;
+      }
+      button.dataset.copied = "true";
+      button.setAttribute("aria-label", "Đã sao chép");
+      setTimeout(() => { button.dataset.copied = "false"; button.setAttribute("aria-label", "Sao chép"); }, COPIED_FOR_MS);
+    });
+  });
+</script>

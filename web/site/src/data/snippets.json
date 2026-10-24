@@ -1,0 +1,10 @@
+{
+  "experiment_35m": {
+    "path": "foundation_lab/core/configs/SAI_35M.yaml",
+    "text": "# SAI 35M: num_workers=1, đóng băng block [0, 1] ở SFT1/SFT2.\nextends: base.yaml\nmodel: SAI_35M\nruntime:\n  num_workers: 1\npipeline:\n  sft1:\n    params:\n      freeze_blocks: [0, 1]\n  sft2:\n    params:\n      freeze_blocks: [0, 1]\n"
+  },
+  "modular_35m": {
+    "path": "foundation_lab/architecture/configs/SAI_modular_35M.yaml",
+    "text": "# Bản lắp ghép của SAI 35M để thí nghiệm kiến trúc. Với các lựa chọn mặc định dưới đây,\n# model giống hệt SAI_35M (cùng phép tính, cùng state_dict). Đổi một dòng để thử biến thể,\n# ví dụ attention_kernel: eager.\nextends: ../../../config/models/SAI_35M.yaml\nfamily: SAI_modular\nattention: gqa\nattention_kernel: sdpa\nffn: swiglu\nnorm: rmsnorm\n"
+  }
+}

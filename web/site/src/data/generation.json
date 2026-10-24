@@ -1,0 +1,46 @@
+[
+  {
+    "name": "strategy",
+    "default": "auto"
+  },
+  {
+    "name": "max_new_tokens",
+    "default": 500
+  },
+  {
+    "name": "beam_size",
+    "default": 5
+  },
+  {
+    "name": "stable_steps",
+    "default": 8
+  },
+  {
+    "name": "length_penalty",
+    "default": 1.0
+  },
+  {
+    "name": "repetition_penalty",
+    "default": 1.2
+  },
+  {
+    "name": "no_repeat_ngram_size",
+    "default": 3
+  },
+  {
+    "name": "temperature",
+    "default": 0.8
+  },
+  {
+    "name": "top_k",
+    "default": 0
+  },
+  {
+    "name": "top_p",
+    "default": 0.95
+  },
+  {
+    "name": "lowercase",
+    "default": true
+  }
+]

@@ -1,0 +1,18 @@
+---
+// Trang Trải nghiệm: điểm khác nhau duy nhất giữa hai bản deploy. "@try-page" là TryStatic hoặc TryServer
+// tuỳ bản build (alias trong astro.config.mjs): Astro gom CSS và script của mọi component được import, kể cả
+// nhánh không render, nên chỉ import đúng một component để bản static không chứa code chat.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import TryPage from "@try-page";
+import { deployTarget } from "../lib/target";
+
+const target = deployTarget();
+---
+<BaseLayout
+  title={target === "static" ? "Chạy SAI trên máy bạn · SAI" : "Chat với SAI · SAI"}
+  description={target === "static" ? "Hướng dẫn tải SAI từ Hugging Face và chạy trên máy của bạn." : "Trò chuyện trực tiếp với các mô hình SAI."}
+  current="try"
+  chrome={target === "static" ? "page" : "app"}
+>
+  <TryPage />
+</BaseLayout>

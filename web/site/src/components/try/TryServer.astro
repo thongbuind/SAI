@@ -1,0 +1,579 @@
+---
+// /try/ của bản server: chat với mô hình qua /api (web/backend). Bố cục và trạng thái theo mockup chat:
+// màn chào, đang trò chuyện, chọn mô hình, xem chia sẻ (chỉ đọc), máy chủ đang nạp, lỗi gửi.
+import "../../styles/chat.css";
+import Icon from "../Icon.astro";
+import Badge from "../Badge.astro";
+import Button from "../Button.astro";
+import ThemeToggle from "../ThemeToggle.astro";
+import ChatSidebar from "./ChatSidebar.astro";
+import ChatComposer from "./ChatComposer.astro";
+
+const SUGGESTIONS = [
+  "Giải thích transformer cho người mới",
+  "Viết bài thơ ngắn về Hà Nội",
+  "Hướng dẫn nấu cháo gà",
+  "RoPE hoạt động thế nào?",
+];
+---
+<div class="chat-app" data-try="server">
+  <div class="chat-scrim" id="chat-scrim" hidden></div>
+  <ChatSidebar />
+
+  <div class="chat-main">
+    <div class="chat-topbar">
+      <button class="icon-btn" type="button" id="chat-sidebar-open" aria-label="Mở thanh bên" aria-controls="chat-sidebar" aria-expanded="false"><Icon name="panel-left" /></button>
+      <span class="chat-title" id="chat-title">Cuộc trò chuyện mới</span>
+      <span class="grow"></span>
+      <span class="chat-status" id="chat-status" role="status"><Badge tone="warning" dot>Đang kết nối máy chủ</Badge></span>
+      <ThemeToggle />
+    </div>
+
+    <div class="readonly-banner glass-control" id="chat-readonly" hidden>
+      <Icon name="info" />
+      <span>Bạn đang xem cuộc trò chuyện được chia sẻ trong Cộng đồng · chỉ đọc</span>
+      <Button id="chat-readonly-new" size="sm" icon="plus">Cuộc trò chuyện mới</Button>
+    </div>
+
+    <section class="welcome" id="chat-welcome" aria-label="Bắt đầu">
+      <h1 class="t-display-hero">SAI</h1>
+      <p class="t-eyebrow">powered by Nidai</p>
+      <p class="t-large">Hỏi bằng tiếng Việt. Câu trả lời có thể sai, hãy kiểm chứng điều quan trọng.</p>
+      <div id="chat-welcome-status" hidden><Badge tone="warning" dot>Máy chủ đang nạp mô hình, ô nhập sẽ mở khi sẵn sàng</Badge></div>
+      <div class="suggestions">
+        {SUGGESTIONS.map(text => <button class="suggestion" type="button" data-suggest>{text}</button>)}
+      </div>
+    </section>
+
+    <div class="chat-scroll" id="chat-scroll" hidden>
+      <div class="chat-thread" id="chat-thread" aria-live="polite"></div>
+    </div>
+
+    <ChatComposer />
+  </div>
+</div>
+
+<script>
+  import {
+    RequestError, browserUserId, deleteSession, fetchModels, getSession, listCommunity, listHistory, newSessionId,
+    saveSession, sendChat, toggleShare, type ChatReply, type CommunitySummary, type ModelStatus, type SessionSummary,
+    type StoredMessage,
+  } from "../../lib/chatApi";
+  import {
+    aiMessage, dayGroup, groupHeading, iconButton, iconSvg, modelLabel, normalizeAIText, relativeTime,
+    renderAIText, systemMessage, typingMessage, userMessage,
+  } from "../../lib/chatRender";
+  import { formatMillions } from "../../lib/text";
+  import modelData from "../../data/models.json";
+
+  const POLL_INTERVAL_MS = 2000;     // hỏi lại /api/models khi còn mô hình đang nạp
+  const TYPE_INTERVAL_MS = 18;       // nhịp hiện chữ dần của câu trả lời
+  const TYPE_DURATION_MAX_MS = 2000; // câu dài thì hiện nhiều ký tự mỗi nhịp để không quá thời gian này
+  const TITLE_MAX_CHARS = 40;        // tiêu đề cuộc trò chuyện lấy từ tin đầu tiên
+  const TEXTAREA_MAX_PX = 200;
+  const MODEL_KEY = "sai-chat-model";
+  const NARROW = window.matchMedia("(max-width: 900px)");
+  const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const sidebar = $("chat-sidebar"), scrim = $("chat-scrim"), openSidebarButton = $<HTMLButtonElement>("chat-sidebar-open");
+  const welcome = $("chat-welcome"), welcomeStatus = $("chat-welcome-status"), scroll = $("chat-scroll"), thread = $("chat-thread");
+  const readonlyBanner = $("chat-readonly"), dock = $("chat-dock"), title = $("chat-title");
+  const composer = $<HTMLFormElement>("chat-composer"), input = $<HTMLTextAreaElement>("chat-message"), send = $<HTMLButtonElement>("chat-send");
+  const shareButton = $<HTMLButtonElement>("chat-share"), modelSelect = $<HTMLButtonElement>("chat-model-select");
+  const modelMenu = $("chat-model-menu"), modelLabelText = $("chat-model-label");
+  const tabs = { mine: $<HTMLButtonElement>("chat-tab-mine"), community: $<HTMLButtonElement>("chat-tab-community") };
+  const panels = { mine: $("chat-panel-mine"), community: $("chat-panel-community") };
+
+  type Tab = keyof typeof tabs;
+  interface Conversation { id: string; createdAt: number; messages: StoredMessage[]; shared: boolean; readOnly: boolean }
+
+  const userId = browserUserId();
+  let conversation = blankConversation();
+  let models: ModelStatus[] = [];
+  let selectedModel = "";
+  let connectionLost = false;
+  let sending = false;
+  let activeTab: Tab = "mine";
+
+  function blankConversation(): Conversation {
+    return { id: newSessionId(), createdAt: Date.now() / 1000, messages: [], shared: false, readOnly: false };
+  }
+
+  // ===== Mô hình và trạng thái máy chủ =====
+
+  function readSavedModel(): string | null {
+    try { return localStorage.getItem(MODEL_KEY); } catch { /* lưu trữ bị chặn: dùng mô hình mặc định */ return null; }
+  }
+
+  function saveModel(name: string) {
+    try { localStorage.setItem(MODEL_KEY, name); } catch { /* lưu trữ bị chặn: lựa chọn chỉ giữ trong phiên này */ }
+  }
+
+  const selectedState = () => models.find(m => m.name === selectedModel)?.state;
+
+  async function refreshModels() {
+    try {
+      const list = await fetchModels();
+      models = list.models;
+      connectionLost = false;
+      if (!models.some(m => m.name === selectedModel)) {
+        const saved = readSavedModel();
+        selectedModel = models.some(m => m.name === saved) ? saved! : list.default;
+      }
+    } catch (error) {
+      if (!(error instanceof RequestError)) throw error;
+      connectionLost = true;
+    }
+    renderModelMenu();
+    renderStatus();
+    if (connectionLost || models.some(m => m.state === "pending" || m.state === "loading")) {
+      setTimeout(refreshModels, POLL_INTERVAL_MS);
+    }
+  }
+
+  function setBadge(container: HTMLElement, tone: "success" | "warning" | "danger", text: string) {
+    const badge = container.querySelector(".badge")!;
+    badge.classList.remove("badge-success", "badge-warning", "badge-danger");
+    badge.classList.add(`badge-${tone}`);
+    badge.textContent = text;
+  }
+
+  function renderStatus() {
+    const state = selectedState();
+    const [tone, text] = connectionLost ? ["danger", "Không kết nối được máy chủ"] as const
+      : state === "ready" ? ["success", "Máy chủ sẵn sàng"] as const
+      : state === "error" ? ["danger", "Mô hình không nạp được"] as const
+      : ["warning", "Đang nạp mô hình"] as const;
+    setBadge($("chat-status"), tone, text);
+    welcomeStatus.hidden = state === "ready";
+    if (state !== "ready") {
+      setBadge(welcomeStatus, tone, connectionLost ? "Không kết nối được máy chủ, đang thử lại"
+        : state === "error" ? `${modelLabel(selectedModel)} không nạp được, hãy chọn mô hình khác`
+        : "Máy chủ đang nạp mô hình, ô nhập sẽ mở khi sẵn sàng");
+    }
+    document.querySelectorAll<HTMLButtonElement>("[data-suggest]").forEach(button => { button.disabled = state !== "ready"; });
+    renderComposer();
+  }
+
+  function canSend(): boolean {
+    return !sending && !conversation.readOnly && !connectionLost && selectedState() === "ready";
+  }
+
+  function placeholder(): string {
+    if (connectionLost) return "Không kết nối được máy chủ…";
+    const state = selectedState();
+    if (state === "error") return "Mô hình này không nạp được, hãy chọn mô hình khác…";
+    return state === "ready" ? "Hỏi SAI bất cứ điều gì…" : "Máy chủ đang nạp mô hình…";
+  }
+
+  function renderComposer() {
+    // Trong lúc chờ trả lời vẫn gõ được tin tiếp theo, chỉ nút gửi bị khoá.
+    const blocked = !canSend() && !sending;
+    composer.classList.toggle("is-disabled", blocked);
+    input.disabled = blocked;
+    input.placeholder = placeholder();
+    send.disabled = !canSend() || !input.value.trim();
+    modelLabelText.textContent = selectedModel ? modelLabel(selectedModel) : "Đang tải…";
+    shareButton.hidden = conversation.messages.length === 0;
+    shareButton.setAttribute("aria-pressed", String(conversation.shared));
+    shareButton.setAttribute("aria-label", conversation.shared ? "Đang chia sẻ, bấm để ẩn khỏi Cộng đồng" : "Chia sẻ lên Cộng đồng");
+  }
+
+  // ===== Menu chọn mô hình =====
+
+  const STATE_TEXT: Record<string, string> = { pending: "chờ nạp", loading: "đang nạp", error: "không nạp được" };
+
+  function renderModelMenu() {
+    modelMenu.querySelectorAll(".model-option").forEach(option => option.remove());
+    for (const model of models) {
+      const info = modelData.find(m => m.name === model.name);
+      const option = document.createElement("div");
+      option.className = "model-option";
+      option.setAttribute("role", "option");
+      option.tabIndex = -1;
+      option.dataset.model = model.name;
+      option.setAttribute("aria-selected", String(model.name === selectedModel));
+      option.setAttribute("aria-disabled", String(model.state === "error"));
+      const text = document.createElement("div");
+      const name = document.createElement("b");
+      name.textContent = modelLabel(model.name);
+      const caption = document.createElement("span");
+      caption.className = "t-caption";
+      const size = info ? `${formatMillions(info.parameters)} triệu tham số` : model.name;
+      caption.textContent = model.state === "ready" ? size : `${size} · ${STATE_TEXT[model.state]}`;
+      text.append(name, caption);
+      option.append(text);
+      option.insertAdjacentHTML("beforeend", iconSvg("check"));
+      option.addEventListener("click", () => chooseModel(model));
+      modelMenu.append(option);
+    }
+  }
+
+  const menuOptions = () => [...modelMenu.querySelectorAll<HTMLElement>(".model-option")];
+
+  function setMenu(open: boolean) {
+    modelMenu.hidden = !open;
+    modelSelect.setAttribute("aria-expanded", String(open));
+    if (open) (menuOptions().find(o => o.getAttribute("aria-selected") === "true") ?? menuOptions()[0])?.focus();
+  }
+
+  function chooseModel(model: ModelStatus) {
+    if (model.state === "error") return;
+    selectedModel = model.name;
+    saveModel(model.name);
+    renderModelMenu();
+    renderStatus();
+    setMenu(false);
+    modelSelect.focus();
+  }
+
+  modelSelect.addEventListener("click", () => setMenu(modelMenu.hidden));
+  modelMenu.addEventListener("keydown", event => {
+    const options = menuOptions();
+    const index = options.indexOf(document.activeElement as HTMLElement);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      options[(index + step + options.length) % options.length].focus();
+    } else if ((event.key === "Enter" || event.key === " ") && index >= 0) {
+      event.preventDefault();
+      chooseModel(models.find(m => m.name === options[index].dataset.model)!);
+    } else if (event.key === "Escape") {
+      setMenu(false);
+      modelSelect.focus();
+    }
+  });
+  document.addEventListener("click", event => {
+    const target = event.target as Node;
+    if (!modelMenu.hidden && !modelMenu.contains(target) && !modelSelect.contains(target)) setMenu(false);
+  });
+
+  // ===== Khung hội thoại =====
+
+  function showWelcome(isWelcome: boolean) {
+    welcome.hidden = !isWelcome;
+    scroll.hidden = isWelcome;
+    readonlyBanner.hidden = !conversation.readOnly;
+    dock.hidden = conversation.readOnly;
+  }
+
+  const scrollToEnd = () => { scroll.scrollTop = scroll.scrollHeight; };
+
+  function appendAI(text: string, model: string, latencyMs: number | null, animate: boolean) {
+    const meta = latencyMs === null ? modelLabel(model)
+      : `${modelLabel(model)} · ${(latencyMs / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} giây`;
+    const { row, bubble } = aiMessage(meta, () => text);
+    thread.append(row);
+    if (!animate || REDUCED_MOTION.matches) {
+      renderAIText(bubble, text);
+      scrollToEnd();
+      return;
+    }
+    const step = Math.max(1, Math.ceil(text.length / (TYPE_DURATION_MAX_MS / TYPE_INTERVAL_MS)));
+    let shown = 0;
+    const timer = setInterval(() => {
+      shown += step;
+      renderAIText(bubble, text.slice(0, shown));
+      scrollToEnd();
+      if (shown >= text.length) clearInterval(timer);
+    }, TYPE_INTERVAL_MS);
+  }
+
+  function renderConversation() {
+    thread.replaceChildren();
+    for (const message of conversation.messages) {
+      if (message.role === "user") thread.append(userMessage(message.text));
+      else if (message.role === "ai") appendAI(message.text, message.model ?? "", null, false);
+      else thread.append(systemMessage(message.text));
+    }
+    title.textContent = conversationTitle(conversation.messages) ?? "Cuộc trò chuyện mới";
+    showWelcome(conversation.messages.length === 0);
+    renderComposer();
+    renderHistoryHighlight();
+    scrollToEnd();
+  }
+
+  function conversationTitle(messages: StoredMessage[]): string | null {
+    return messages.find(m => m.role === "user")?.text.slice(0, TITLE_MAX_CHARS) ?? null;
+  }
+
+  function newChat() {
+    conversation = blankConversation();
+    renderConversation();
+    closeSidebarOnNarrow();
+    input.focus();
+  }
+
+  async function sendMessage(text: string) {
+    const current = conversation;
+    const userRow = userMessage(text);
+    const typing = typingMessage();
+    showWelcome(false);
+    thread.append(userRow, typing);
+    title.textContent = conversationTitle(current.messages) ?? text.slice(0, TITLE_MAX_CHARS);
+    scrollToEnd();
+    sending = true;
+    renderComposer();
+    let reply: ChatReply;
+    try {
+      reply = await sendChat(text, userId, selectedModel, current.id);
+    } catch (error) {
+      if (!(error instanceof RequestError)) throw error;
+      if (conversation === current) showSendError(text, userRow, typing, error.message);
+      return;
+    } finally {
+      sending = false;
+      renderComposer();
+    }
+    if (conversation !== current) return; // người dùng đã chuyển sang cuộc trò chuyện khác
+    typing.remove();
+    const answer = normalizeAIText(reply.reply);
+    current.messages.push({ role: "user", text }, { role: "ai", text: answer, model: reply.model });
+    appendAI(answer, reply.model, reply.latency_ms, true);
+    renderComposer();
+    input.focus();
+    await saveConversation(current);
+  }
+
+  // Tin gửi lỗi không vào lịch sử; "Thử lại" gỡ cả tin và dòng lỗi rồi gửi lại đúng tin đó.
+  function showSendError(text: string, userRow: HTMLElement, typing: HTMLElement, message: string) {
+    typing.remove();
+    const errorRow = systemMessage(message, () => {
+      if (!canSend()) return;
+      userRow.remove();
+      errorRow.remove();
+      sendMessage(text);
+    });
+    thread.append(errorRow);
+    scrollToEnd();
+  }
+
+  async function saveConversation(snapshot: Conversation) {
+    try {
+      await saveSession({
+        id: snapshot.id,
+        title: conversationTitle(snapshot.messages) ?? "Cuộc trò chuyện",
+        messages: snapshot.messages,
+        created_at: snapshot.createdAt,
+        user_id: userId,
+        shared: snapshot.shared,
+      });
+    } catch (error) {
+      if (!(error instanceof RequestError)) throw error;
+      thread.append(systemMessage(`Không lưu được lịch sử: ${error.message}`));
+      return;
+    }
+    if (activeTab === "mine") await loadMine();
+  }
+
+  composer.addEventListener("submit", event => {
+    event.preventDefault();
+    const text = input.value.trim();
+    if (!text || !canSend()) return;
+    input.value = "";
+    autoSize();
+    sendMessage(text);
+  });
+
+  function autoSize() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, TEXTAREA_MAX_PX) + "px";
+    renderComposer();
+  }
+
+  input.addEventListener("input", autoSize);
+  input.addEventListener("keydown", event => {
+    // isComposing: đang gõ dấu bằng bộ gõ tiếng Việt, Enter chỉ xác nhận chữ chứ không gửi.
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      composer.requestSubmit();
+    }
+  });
+
+  document.querySelectorAll<HTMLButtonElement>("[data-suggest]").forEach(button => button.addEventListener("click", () => {
+    input.value = button.textContent!.trim();
+    autoSize();
+    input.focus();
+  }));
+
+  shareButton.addEventListener("click", async () => {
+    try {
+      conversation.shared = await toggleShare(conversation.id, userId);
+      renderComposer();
+      await loadActiveTab();
+    } catch (error) {
+      if (!(error instanceof RequestError)) throw error;
+      thread.append(systemMessage(error.message));
+    }
+  });
+
+  // ===== Lịch sử =====
+
+  async function openConversation(id: string, readOnly: boolean) {
+    try {
+      const session = await getSession(id, userId);
+      conversation = { id: session.id, createdAt: session.created_at, messages: session.messages, shared: session.shared, readOnly };
+      renderConversation();
+      closeSidebarOnNarrow();
+    } catch (error) {
+      if (!(error instanceof RequestError)) throw error;
+      panels[activeTab].prepend(listMessage(`Không mở được cuộc trò chuyện: ${error.message}`));
+    }
+  }
+
+  function listMessage(text: string): HTMLElement {
+    const p = document.createElement("p");
+    p.className = "t-caption history-empty";
+    p.textContent = text;
+    return p;
+  }
+
+  function renderGrouped<T extends { created_at: number }>(panel: HTMLElement, sessions: T[], render: (session: T, now: number) => HTMLElement, empty: string) {
+    panel.replaceChildren();
+    if (!sessions.length) {
+      panel.append(listMessage(empty));
+      return;
+    }
+    const now = Date.now() / 1000;
+    let group = "";
+    for (const session of [...sessions].sort((a, b) => b.created_at - a.created_at)) {
+      const next = dayGroup(session.created_at, now);
+      if (next !== group) panel.append(groupHeading(group = next));
+      panel.append(render(session, now));
+    }
+  }
+
+  function mineItem(session: SessionSummary): HTMLElement {
+    const item = document.createElement("div");
+    item.className = "history-item";
+    item.dataset.id = session.id;
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "history-open";
+    open.textContent = session.title;
+    open.addEventListener("click", () => openConversation(session.id, false));
+    const share = iconButton("share", session.shared ? "Đang chia sẻ, bấm để ẩn khỏi Cộng đồng" : "Chia sẻ lên Cộng đồng");
+    share.setAttribute("aria-pressed", String(session.shared));
+    share.addEventListener("click", async () => {
+      try {
+        const shared = await toggleShare(session.id, userId);
+        if (conversation.id === session.id) {
+          conversation.shared = shared;
+          renderComposer();
+        }
+        await loadMine();
+      } catch (error) {
+        if (!(error instanceof RequestError)) throw error;
+        panels.mine.prepend(listMessage(error.message));
+      }
+    });
+    const remove = iconButton("trash", "Xoá cuộc trò chuyện");
+    remove.addEventListener("click", async () => {
+      try {
+        await deleteSession(session.id, userId);
+        if (conversation.id === session.id) newChat();
+        await loadMine();
+      } catch (error) {
+        if (!(error instanceof RequestError)) throw error;
+        panels.mine.prepend(listMessage(error.message));
+      }
+    });
+    item.append(open, share, remove);
+    return item;
+  }
+
+  function communityItem(session: CommunitySummary, now: number): HTMLElement {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "history-item community";
+    item.dataset.id = session.id;
+    const name = document.createElement("span");
+    name.textContent = session.title;
+    const meta = document.createElement("span");
+    meta.className = "t-caption";
+    meta.textContent = [session.model && modelLabel(session.model), relativeTime(session.created_at, now)].filter(Boolean).join(" · ");
+    item.append(name, meta);
+    item.addEventListener("click", () => openConversation(session.id, true));
+    return item;
+  }
+
+  function renderHistoryHighlight() {
+    panels.mine.querySelectorAll<HTMLElement>(".history-item").forEach(item => {
+      if (item.dataset.id === conversation.id) item.setAttribute("aria-current", "true");
+      else item.removeAttribute("aria-current");
+    });
+  }
+
+  async function loadMine() {
+    try {
+      renderGrouped(panels.mine, await listHistory(userId), mineItem, "Chưa có cuộc trò chuyện nào.");
+      renderHistoryHighlight();
+    } catch (error) {
+      if (!(error instanceof RequestError)) throw error;
+      panels.mine.replaceChildren(listMessage(`Không tải được lịch sử: ${error.message}`));
+    }
+  }
+
+  async function loadCommunity() {
+    try {
+      renderGrouped(panels.community, await listCommunity(), communityItem, "Chưa có cuộc trò chuyện nào được chia sẻ.");
+    } catch (error) {
+      if (!(error instanceof RequestError)) throw error;
+      panels.community.replaceChildren(listMessage(`Không tải được Cộng đồng: ${error.message}`));
+    }
+  }
+
+  const loadActiveTab = () => (activeTab === "mine" ? loadMine() : loadCommunity());
+
+  function selectTab(tab: Tab) {
+    activeTab = tab;
+    for (const key of Object.keys(tabs) as Tab[]) {
+      tabs[key].setAttribute("aria-selected", String(key === tab));
+      tabs[key].tabIndex = key === tab ? 0 : -1;
+      panels[key].hidden = key !== tab;
+    }
+    loadActiveTab();
+  }
+
+  for (const key of Object.keys(tabs) as Tab[]) {
+    tabs[key].addEventListener("click", () => selectTab(key));
+    tabs[key].addEventListener("keydown", event => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const next: Tab = key === "mine" ? "community" : "mine";
+      selectTab(next);
+      tabs[next].focus();
+    });
+  }
+
+  // ===== Thanh bên =====
+
+  function setSidebar(open: boolean) {
+    sidebar.hidden = !open;
+    openSidebarButton.hidden = open;
+    openSidebarButton.setAttribute("aria-expanded", String(open));
+    scrim.hidden = !(open && NARROW.matches);
+  }
+
+  function closeSidebarOnNarrow() {
+    if (NARROW.matches && !sidebar.hidden) setSidebar(false);
+  }
+
+  $("chat-sidebar-close").addEventListener("click", () => { setSidebar(false); openSidebarButton.focus(); });
+  openSidebarButton.addEventListener("click", () => { setSidebar(true); $("chat-sidebar-close").focus(); });
+  scrim.addEventListener("click", () => setSidebar(false));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && NARROW.matches && !sidebar.hidden) {
+      setSidebar(false);
+      openSidebarButton.focus();
+    }
+  });
+  NARROW.addEventListener("change", () => setSidebar(!NARROW.matches));
+  $("chat-new").addEventListener("click", newChat);
+  $("chat-readonly-new").addEventListener("click", newChat);
+
+  setSidebar(!NARROW.matches);
+  renderConversation();
+  refreshModels();
+  loadMine();
+</script>

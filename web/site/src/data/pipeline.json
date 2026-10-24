@@ -1,0 +1,33 @@
+{
+  "source": "foundation_lab/core/configs/base.yaml",
+  "stages": [
+    {
+      "name": "pretrain",
+      "recipe": "causal_lm",
+      "data": "pretrain",
+      "init": null,
+      "enabled": true
+    },
+    {
+      "name": "continued",
+      "recipe": "causal_lm",
+      "data": "continued_mix",
+      "init": "pretrain.best",
+      "enabled": false
+    },
+    {
+      "name": "sft1",
+      "recipe": "sft",
+      "data": "sft1",
+      "init": "pretrain.best",
+      "enabled": true
+    },
+    {
+      "name": "sft2",
+      "recipe": "sft",
+      "data": "sft2_mix",
+      "init": "sft1.best",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+# Build bản static của web (web/site) và deploy lên GitHub Pages.
+# Cần: repo tên SAI (web chạy ở https://thongbuind.github.io/SAI/), Settings → Pages → Source: GitHub Actions.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/site/**", ".github/workflows/pages.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Chỉ giữ một lần deploy đang chạy; lần mới thay lần cũ nhưng không huỷ lần đang deploy dở.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/site
+    env:
+      ASTRO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/site/package-lock.json
+      - run: npm ci
+      - run: npm run build:static
+        env:
+          SITE_URL: https://thongbuind.github.io
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/site/dist/static
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,52 @@
+---
+// Tabs trên Figma, dùng để chọn thiết bị; mỗi tab hiện một ghi chú. Chuyển tab bằng chuột hoặc phím mũi tên.
+interface Props {
+  id: string;
+  label: string;
+  tabs: { id: string; label: string; note: string }[];
+}
+const { id, label, tabs } = Astro.props;
+---
+<div class="device-tabs" data-device-tabs>
+  <div class="tablist" role="tablist" aria-label={label}>
+    {tabs.map((tab, index) => (
+      <button class="tab" type="button" role="tab" id={`${id}-tab-${tab.id}`} aria-controls={`${id}-panel-${tab.id}`} aria-selected={String(index === 0)} tabindex={index === 0 ? "0" : "-1"}>{tab.label}</button>
+    ))}
+  </div>
+  {tabs.map((tab, index) => (
+    <p class="t-caption panel" role="tabpanel" id={`${id}-panel-${tab.id}`} aria-labelledby={`${id}-tab-${tab.id}`} hidden={index !== 0}>{tab.note}</p>
+  ))}
+</div>
+
+<style>
+  .device-tabs { display: flex; flex-direction: column; gap: var(--space-2); }
+  .tablist { display: inline-flex; align-self: flex-start; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-pill); border: 1px solid var(--border-default); background: var(--fill-highlight); }
+  .tab { padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill); border: 1px solid transparent; background: none; color: var(--text-tertiary); font: 500 13px/1 var(--font-sans); cursor: pointer; transition: color var(--duration-fast), background-color var(--duration-fast); }
+  .tab:hover { color: var(--text-primary); }
+  .tab[aria-selected="true"] { background: var(--fill-accent-active); border-color: var(--border-strong); color: var(--text-primary); }
+  .panel { margin: 0; }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-device-tabs]").forEach(group => {
+    const tabs = [...group.querySelectorAll<HTMLButtonElement>("[role=tab]")];
+    const select = (tab: HTMLButtonElement) => {
+      tabs.forEach(other => {
+        const selected = other === tab;
+        other.setAttribute("aria-selected", String(selected));
+        other.tabIndex = selected ? 0 : -1;
+        document.getElementById(other.getAttribute("aria-controls")!)!.hidden = !selected;
+      });
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => select(tab));
+      tab.addEventListener("keydown", event => {
+        const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+        if (!step) return;
+        const next = tabs[(index + step + tabs.length) % tabs.length];
+        select(next);
+        next.focus();
+      });
+    });
+  });
+</script>

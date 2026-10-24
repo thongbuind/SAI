@@ -1,0 +1,65 @@
+---
+// Footer trên Figma, dùng chung cho cả hai bản deploy. Năm bản quyền lấy theo thời điểm build.
+import Icon from "./Icon.astro";
+import { url } from "../lib/paths";
+import { GITHUB_URL, HUGGING_FACE_URL, FACEBOOK_URL } from "../lib/site";
+import version from "../data/version.json";
+
+const columns = [
+  { title: "Dự án", links: [
+    { label: "Giới thiệu", href: url("/"), external: false },
+    { label: "Foundation Lab", href: url("/lab/"), external: false },
+    { label: "Mô hình", href: url("/#models"), external: false },
+    { label: "Trải nghiệm", href: url("/try/"), external: false },
+  ] },
+  { title: "Tài nguyên", links: [
+    { label: "GitHub", href: GITHUB_URL, external: true },
+    { label: "Hugging Face", href: HUGGING_FACE_URL, external: true },
+  ] },
+  { title: "Cộng đồng", links: [
+    { label: "Facebook", href: FACEBOOK_URL, external: true },
+    { label: "Issues", href: `${GITHUB_URL}/issues`, external: true },
+  ] },
+];
+const year = new Date().getFullYear();
+---
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <span class="t-logo footer-logo">SAI</span>
+        <p class="t-small">Mô hình ngôn ngữ thuần Việt, xây từ con số 0 và mở toàn bộ: kiến trúc, code huấn luyện, trọng số.</p>
+      </div>
+      <div class="footer-columns">
+        {columns.map(column => (
+          <nav class="footer-column" aria-label={column.title}>
+            <span class="t-overline">{column.title}</span>
+            {column.links.map(link => (
+              <a class="footer-link" href={link.href} target={link.external ? "_blank" : undefined} rel={link.external ? "noopener" : undefined}>
+                {link.label}{link.external && <Icon name="external" size={12} />}
+              </a>
+            ))}
+          </nav>
+        ))}
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="t-eyebrow copyright">© {year} Nidai · Mã nguồn Apache-2.0</span>
+      <span class="t-caption">Phiên bản mô hình {version.model}</span>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer { position: relative; z-index: 1; border-top: 1px solid var(--border-subtle); padding-block: var(--space-16) var(--space-10); }
+  .footer-top { display: flex; flex-wrap: wrap; gap: var(--space-10) var(--space-16); }
+  .footer-brand { flex: 1 1 260px; max-width: 340px; display: flex; flex-direction: column; gap: var(--space-3); }
+  .footer-brand p { margin: 0; }
+  .footer-logo { font-size: 22px; }
+  .footer-columns { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); }
+  .footer-column { min-width: 120px; display: flex; flex-direction: column; gap: var(--space-3); }
+  .footer-link { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-tertiary); text-decoration: none; font-size: 13px; }
+  .footer-link:hover { color: var(--text-primary); }
+  .footer-bottom { margin-top: var(--space-12); padding-top: var(--space-6); border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: space-between; align-items: center; }
+  .copyright { font-size: 13px; }
+</style>
