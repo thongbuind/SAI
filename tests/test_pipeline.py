@@ -2,6 +2,7 @@ import math
 import pytest
 import torch
 from helpers import TINY_MODEL, tiny_experiment
+import foundation_lab
 from foundation_lab.catalog import build_model
 from foundation_lab.core.experiment import resolve_experiment_dict
 from foundation_lab.data.loaders import BucketPadCollator
@@ -12,6 +13,7 @@ from foundation_lab.core.experiment import RuntimeSpec
 from foundation_lab.engine.step import accumulate_lm_gradients, optimizer_step
 from foundation_lab.objectives import chunked_lm_loss
 from foundation_lab.pipeline import run_experiment
+from foundation_lab.state.lineage import collect_lineage
 from foundation_lab.state.metrics import MetricsLogger
 from foundation_lab.state.run import RunDir
 
@@ -153,3 +155,6 @@ def test_tiny_data_fit():
     # Token đầu sau BOS không đoán được (4 mẫu cùng bắt đầu bằng BOS): loss tổng tối thiểu = 4·ln 4.
     floor = 4 * math.log(4)
     assert (loss_sum.item() - floor) / denominator < 0.01
+
+def test_lineage_records_lab_version():
+    assert collect_lineage("hash", {})["lab_version"] == foundation_lab.__version__

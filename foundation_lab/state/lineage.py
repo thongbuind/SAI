@@ -7,6 +7,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 import torch
+from foundation_lab import __version__ as LAB_VERSION
 from foundation_lab.paths import PROJECT_ROOT, TOKENIZER_MODEL
 
 def _git(*args) -> str | None:
@@ -58,6 +59,7 @@ def collect_lineage(config_hash: str, data_files: dict[str, list[Path]]) -> dict
     return {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "config_hash": config_hash,
+        "lab_version": LAB_VERSION,
         "git": git_info(),
         "env": env,
         "tokenizer": file_fingerprint(TOKENIZER_MODEL),

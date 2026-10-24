@@ -15,6 +15,9 @@ Lab được tổ chức như các phòng ban, mỗi phòng sở hữu một reg
 
 Muốn thêm một biến thể: đăng ký implementation mới vào registry của phòng tương ứng
 rồi chọn nó qua config, không sửa code của phòng khác.
+
+``__version__`` là phiên bản nội bộ ``labx.y.z`` của lab, ghi vào lineage của mỗi run; nó độc lập với
+phiên bản phát hành trong ``SAI.version``. lab1.0.0 ứng với dev3.0.0.
 """
 
-__version__ = "0.3.0"
+__version__ = "1.0.1"
