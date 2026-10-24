@@ -68,7 +68,7 @@ def test_invalid_padding_mask_is_rejected(tiny_model):
     with pytest.raises(ValueError, match="ít nhất một token"):
         tiny_model(torch.zeros((1, 3), dtype=torch.long), attention_mask=torch.zeros((1, 3)))
 
-def test_weight_tying_and_dev2_state_dict_keys(tiny_model):
+def test_weight_tying_and_state_dict_keys(tiny_model):
     assert tiny_model.lm_head.weight is tiny_model.embed.weight
     keys = set(tiny_model.state_dict())
     expected = {"embed.weight", "lm_head.weight", "norm.weight"}

@@ -2,8 +2,8 @@ import torch.nn as nn
 from foundation_lab.architecture.registry import ATTENTIONS, FFNS, NORMS
 
 class DecoderBlock(nn.Module):
-    """Pre-norm decoder block của dev_2. Thành phần attention/FFN/norm chọn theo tên;
-    tên thuộc tính (gqa, ffn, norm1, norm2) giữ nguyên để state_dict khớp checkpoint cũ."""
+    """Pre-norm decoder block. Thành phần attention/FFN/norm chọn theo tên;
+    tên thuộc tính (gqa, ffn, norm1, norm2) giữ nguyên để state_dict khớp các checkpoint đã phát hành."""
 
     def __init__(
         self, d_model: int, num_heads: int, num_kv_heads: int, ff_dim: int, dropout: float,

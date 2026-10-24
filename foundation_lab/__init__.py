@@ -12,6 +12,7 @@ Lab được tổ chức như các phòng ban, mỗi phòng sở hữu một reg
 - ``state``       Phòng Lưu trữ: thư mục run, checkpoint, lineage, metrics.
 - ``recipes``     Phòng Phương pháp huấn luyện: pretrain, SFT (sau này distill, DPO, RLHF...).
 - ``eval``        Phòng Đánh giá: loss, công cụ so sánh.
+- ``inference``   Phòng Suy luận: nạp checkpoint để sinh câu trả lời, so sánh các cách giải mã.
 
 Muốn thêm một biến thể: đăng ký implementation mới vào registry của phòng tương ứng
 rồi chọn nó qua config, không sửa code của phòng khác.
@@ -20,4 +21,4 @@ rồi chọn nó qua config, không sửa code của phòng khác.
 phiên bản phát hành trong ``SAI.version``. lab1.0.0 ứng với dev3.0.0.
 """
 
-__version__ = "1.0.1"
+__version__ = "2.0.0"

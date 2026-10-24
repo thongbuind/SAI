@@ -148,3 +148,50 @@ def _coerce(tp, value, path):
 
 def to_dict(obj) -> dict:
     return dataclasses.asdict(obj)
+
+def describe_type(tp) -> dict:
+    """Mô tả dạng JSON của một kiểu mà ``from_dict`` nhận; cùng tập kiểu với ``_coerce``.
+
+    Dùng cho ``python -m foundation_lab describe``: công cụ bên ngoài (vd. web lab) đọc mô tả này để biết
+    một spec gồm những khoá nào, kiểu gì, mặc định ra sao, thay vì đoán từ code.
+    """
+    origin = typing.get_origin(tp)
+    args = typing.get_args(tp)
+    if tp is typing.Any:
+        return {"type": "any"}
+    if origin in (typing.Union, types.UnionType):
+        options = [describe_type(arg) for arg in args if arg is not type(None)]
+        described = options[0] if len(options) == 1 else {"type": "union", "options": options}
+        return {**described, "nullable": True} if type(None) in args else described
+    if origin is typing.Literal:
+        return {"type": "choice", "values": list(args)}
+    if dataclasses.is_dataclass(tp):
+        return describe_dataclass(tp)
+    if origin is list or tp is list:
+        return {"type": "list", "items": describe_type(args[0] if args else typing.Any)}
+    if origin is dict or tp is dict:
+        return {"type": "map", "values": describe_type(args[1] if args else typing.Any)}
+    for python_type, name in ((bool, "bool"), (int, "int"), (float, "float"), (str, "str")):
+        if tp is python_type:
+            return {"type": name}
+    raise ConfigError(f"kiểu {tp} chưa được loader hỗ trợ")
+
+def describe_dataclass(cls) -> dict:
+    """Mô tả các khoá của dataclass ``cls``: kiểu, giá trị mặc định (nếu có) hoặc ``required``."""
+    hints = typing.get_type_hints(cls)
+    fields = {}
+    for field in dataclasses.fields(cls):
+        if not field.init:
+            continue
+        entry = describe_type(hints[field.name])
+        if field.default is not dataclasses.MISSING:
+            entry["default"] = field.default
+        elif field.default_factory is not dataclasses.MISSING:
+            default = field.default_factory()
+            # Dataclass lồng: mặc định của từng khoá đã nằm trong mô tả của chính dataclass đó.
+            if not dataclasses.is_dataclass(default):
+                entry["default"] = default
+        else:
+            entry["required"] = True
+        fields[field.name] = entry
+    return {"type": "object", "name": cls.__name__, "fields": fields}

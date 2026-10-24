@@ -1,4 +1,4 @@
-"""Vòng lặp epoch dùng chung cho các recipe causal LM (gom phần trùng lặp của pretrain.py và finetune.py dev_2).
+"""Vòng lặp epoch dùng chung cho các recipe causal LM.
 
 Recipe quyết định THUẬT TOÁN (dữ liệu, mẫu số chuẩn hoá loss, optimizer, lịch LR, có dựng lại
 train loader mỗi epoch không). Vòng lặp này chỉ lo CƠ CHẾ: microbatch, tích luỹ gradient, bước

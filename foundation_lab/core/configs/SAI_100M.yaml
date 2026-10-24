@@ -1,5 +1,5 @@
-# dev_2 pipeline cho SAI 100M (config/100M.json: num_workers=4, freeze=[0, 1, 2]).
-extends: dev2_base.yaml
+# SAI 100M: num_workers=4, đóng băng block [0, 1, 2] ở SFT1/SFT2.
+extends: base.yaml
 model: SAI_100M
 runtime:
   num_workers: 4

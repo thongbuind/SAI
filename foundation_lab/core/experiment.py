@@ -2,8 +2,9 @@
 
 Quy trình resolve một experiment:
 1. Đọc file, gộp chuỗi ``extends``.
-2. Thay tham chiếu dạng chuỗi bằng nội dung config: ``model: SAI_35M`` → ``config/models/SAI_35M.yaml``,
-   ``data: sft1`` → ``config/data/sft1.yaml``.
+2. Thay tham chiếu dạng chuỗi bằng nội dung config: ``model: SAI_35M`` → ``config/models/SAI_35M.yaml``
+   (hoặc ``foundation_lab/architecture/configs/`` với model thí nghiệm), ``data: sft1`` →
+   ``foundation_lab/data/configs/sft1.yaml``.
 3. Áp override ``--set khoa.con=gia_tri``.
 4. Gộp ``stage_defaults`` vào ``params`` của từng stage (giá trị riêng của stage được ưu tiên).
 
@@ -18,13 +19,13 @@ from pathlib import Path
 from typing import Literal
 
 from foundation_lab.core.config import ConfigError, apply_overrides, deep_merge, from_dict, load_with_extends
-from foundation_lab.paths import DATA_CONFIG_DIR, MODEL_CONFIG_DIR
+from foundation_lab.paths import DATA_CONFIG_DIR, MODEL_CONFIG_DIRS
 
 @dataclass
 class RuntimeSpec:
     """Cấu hình môi trường chạy; không làm đổi thuật toán huấn luyện."""
-    device: Literal["auto", "cuda", "mps", "cpu"] = "auto"   # auto: cuda > mps > cpu như dev_2
-    seed: int | None = None             # None: không đặt seed (giống dev_2); có giá trị: stage thứ i dùng seed + i
+    device: Literal["auto", "cuda", "mps", "cpu"] = "auto"   # auto: cuda > mps > cpu
+    seed: int | None = None             # None: không đặt seed; có giá trị: stage thứ i dùng seed + i
     compile: bool = True                # torch.compile(forward_features, dynamic=True)
     limited_max_autotune: bool = False
     dynamo_cache_size_limit: int = 24
@@ -59,19 +60,25 @@ def parse_init_ref(init: str | None, stage_names) -> tuple[str, str] | None:
         return "stage", match.group("stage")
     return "path", init
 
-def _resolve_ref(value, config_dir: Path, where: str):
+def resolve_config_ref(value, config_dirs: tuple[Path, ...], where: str):
+    """Tên config (``SAI_35M`` → ``<thư mục>/SAI_35M.yaml``, đã gộp ``extends``) hoặc mapping viết sẵn.
+
+    Tên được tìm trong mọi thư mục của ``config_dirs`` và phải có ở đúng một nơi.
+    """
     if isinstance(value, str):
-        path = config_dir / f"{value}.yaml"
-        if not path.exists():
-            raise ConfigError(f"{where}: không tìm thấy {path}")
-        return load_with_extends(path)
+        paths = [directory / f"{value}.yaml" for directory in config_dirs if (directory / f"{value}.yaml").exists()]
+        if not paths:
+            raise ConfigError(f"{where}: không tìm thấy {value}.yaml trong {[str(d) for d in config_dirs]}")
+        if len(paths) > 1:
+            raise ConfigError(f"{where}: tên {value!r} có ở nhiều nơi: {[str(p) for p in paths]}")
+        return load_with_extends(paths[0])
     if isinstance(value, dict):
         return copy.deepcopy(value)
     raise ConfigError(f"{where}: cần tên config hoặc mapping, nhận {value!r}")
 
 def resolve_experiment_dict(data: dict, overrides=None) -> dict:
     data = copy.deepcopy(data)
-    data["model"] = _resolve_ref(data.get("model"), MODEL_CONFIG_DIR, "model")
+    data["model"] = resolve_config_ref(data.get("model"), MODEL_CONFIG_DIRS, "model")
     pipeline = data.get("pipeline")
     if not isinstance(pipeline, dict) or not pipeline:
         raise ConfigError("pipeline: cần mapping tên stage → cấu hình stage, không được rỗng")
@@ -79,7 +86,7 @@ def resolve_experiment_dict(data: dict, overrides=None) -> dict:
         if not isinstance(stage, dict):
             raise ConfigError(f"pipeline.{name}: cần mapping")
         if "data" in stage:
-            stage["data"] = _resolve_ref(stage["data"], DATA_CONFIG_DIR, f"pipeline.{name}.data")
+            stage["data"] = resolve_config_ref(stage["data"], (DATA_CONFIG_DIR,), f"pipeline.{name}.data")
 
     data = apply_overrides(data, overrides)
     defaults = data.pop("stage_defaults", None) or {}

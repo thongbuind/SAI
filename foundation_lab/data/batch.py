@@ -3,7 +3,7 @@ import torch
 
 @dataclass
 class LMBatch:
-    """Hợp đồng batch cho causal LM (thay cho tuple 5 phần tử của dev_2).
+    """Hợp đồng batch cho causal LM.
 
     - ``input_ids``, ``labels``: (B, T) long; giá trị ở vị trí padding không mang nghĩa (vị trí padding
       được đánh dấu bằng ``attention_mask`` và ``loss_weight``, không suy ra từ giá trị token).

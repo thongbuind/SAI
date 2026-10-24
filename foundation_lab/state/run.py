@@ -5,8 +5,10 @@
     ├── lineage.json             # git commit, môi trường, tokenizer, dấu vân tay dữ liệu
     ├── invocations.jsonl        # mỗi lần gọi CLI trên run này (lệnh, stage, init override, git)
     ├── metrics.jsonl            # metric theo thời gian của mọi stage
-    └── stages/<stage>/
-        ├── best.pt              # trọng số best theo val (định dạng state_dict của dev_2)
+    ├── events.jsonl             # tác vụ (vd. infer): tiến trình ghi dần, xem state/events.py
+    ├── result.json              # tác vụ: kết quả khi chạy xong, xem state/results.py
+    └── stages/<stage>/          # experiment: mỗi stage một thư mục
+        ├── best.pt              # trọng số best theo val (state_dict thuần)
         ├── last.ckpt.pt         # checkpoint resume
         └── done.json            # có file này nghĩa là stage đã xong, kèm kết quả
 """
@@ -37,6 +39,14 @@ class RunDir:
     @property
     def metrics_path(self) -> Path:
         return self.path / "metrics.jsonl"
+
+    @property
+    def events_path(self) -> Path:
+        return self.path / "events.jsonl"
+
+    @property
+    def result_path(self) -> Path:
+        return self.path / "result.json"
 
     def write_config(self, resolved: dict) -> str:
         digest = config_hash(resolved)

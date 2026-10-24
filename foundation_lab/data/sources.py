@@ -1,12 +1,12 @@
 """Nguồn dữ liệu đã tokenize: đọc file, trộn với nguồn phụ, split train/val/test.
 
-Hai loại (``kind``) giữ đúng hành vi ``load_data`` của dev_2:
+Hai loại (``kind``):
 - ``lm``: chuỗi token cho pretrain/continued pretrain (không có loss mask).
 - ``sft``: hội thoại có loss mask.
 
 Trộn với nguồn phụ (``sub``): lấy ngẫu nhiên ``mix_ratio × len(main)`` mẫu từ ``sub`` trên TOÀN BỘ
-nguồn phụ, ghép vào ``main`` rồi xáo trộn, sau đó mới split. dev_2 dùng ``mix_ratio=3`` cho continued
-pretrain và ``mix_ratio=1`` cho SFT2. Đây là hành vi cũ, có lỗi đã biết: mẫu test của
+nguồn phụ, ghép vào ``main`` rồi xáo trộn, sau đó mới split. ``data/configs/continued_mix.yaml`` dùng
+``mix_ratio=3``, ``data/configs/sft2_mix.yaml`` dùng ``mix_ratio=1``. Có lỗi đã biết: mẫu test của
 nguồn phụ có thể vào train của nguồn chính.
 """
 

@@ -63,7 +63,7 @@ def write_npz(path, samples, has_mask=False):
     np.savez_compressed(path, **out)
 
 def write_tiny_dataset(processed_dir: Path, seed: int = 0) -> dict:
-    """Tạo đủ bộ file data/processed mà pipeline dev_2 cần; trả về đường dẫn từng nguồn."""
+    """Tạo đủ bộ file data/processed mà pipeline chuẩn cần; trả về đường dẫn từng nguồn."""
     processed_dir = Path(processed_dir)
     processed_dir.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
@@ -95,7 +95,7 @@ def write_tiny_dataset(processed_dir: Path, seed: int = 0) -> dict:
 
 def tiny_experiment(paths: dict, *, seed=0, dropout=0.0, epochs=2, accumulation_steps=2,
                     train_ratio=0.8, val_ratio=0.1, freeze_blocks=(0,), continued=True) -> dict:
-    """Experiment tí hon có cùng cấu trúc với dev2_base.yaml, trỏ vào dữ liệu ``paths``."""
+    """Experiment tí hon có cùng cấu trúc với core/configs/base.yaml, trỏ vào dữ liệu ``paths``."""
     split = {"train_ratio": train_ratio, "val_ratio": val_ratio}
     return {
         "name": "tiny",

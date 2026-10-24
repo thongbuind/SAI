@@ -1,11 +1,11 @@
-"""Chạy một script của dev_2 trong môi trường cố định để làm bản đối chiếu.
+"""Chạy một script của pipeline cũ trong môi trường cố định để làm bản đối chiếu.
 
-    python dev2_runner.py <dev2_root> <seed> <script> [args...]
+    python legacy_runner.py <legacy_root> <seed> <script> [args...]
 
-Chỉ cố định môi trường, không sửa thuật toán của dev_2:
-- ``torch.manual_seed(seed)`` trước khi script chạy (dev_2 không tự đặt seed).
+Chỉ cố định môi trường, không sửa thuật toán của pipeline cũ:
+- ``torch.manual_seed(seed)`` trước khi script chạy (pipeline cũ không tự đặt seed).
 - Ép CPU (ẩn CUDA/MPS) và tắt ``torch.compile`` (trả về hàm gốc).
-- ``persistent_workers=False`` khi ``num_workers=0`` (dev_2 luôn bật nên DataLoader báo lỗi).
+- ``persistent_workers=False`` khi ``num_workers=0`` (pipeline cũ luôn bật nên DataLoader báo lỗi).
 """
 
 import runpy

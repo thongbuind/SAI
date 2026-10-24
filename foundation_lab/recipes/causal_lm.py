@@ -1,11 +1,11 @@
-"""Recipe ``causal_lm``: pretrain và continued pretrain (thay ``train_loop`` của dev_2 pretrain.py).
+"""Recipe ``causal_lm``: pretrain và continued pretrain.
 
 Thuật toán:
 1. Dữ liệu: nguồn ``lm`` → split train/val/test; train dùng sortish batch theo số mẫu.
 2. Objective: ``params.objective`` (mặc định ``lm_ce``: CE next-token) trên mọi token thật (trọng số = labels != PAD).
 3. Chuẩn hoá: mẫu số cố định = (số token trung bình mỗi mẫu train) × batch_size.
-4. Tối ưu: AdamW trên toàn bộ tham số; lịch LR ``dev2_step`` với warmup 10%.
-5. Mỗi epoch: đánh giá val, lưu best theo val. Cuối cùng: test (mặc định trên trọng số cuối như dev_2).
+4. Tối ưu: AdamW trên toàn bộ tham số; lịch LR ``warmup_stable_decay`` với warmup 10%.
+5. Mỗi epoch: đánh giá val, lưu best theo val. Cuối cùng: test (mặc định trên trọng số cuối, ``final_eval=last``).
 """
 
 import gc

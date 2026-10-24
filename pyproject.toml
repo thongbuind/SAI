@@ -2,5 +2,5 @@
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
-    "dev2: đối chiếu với pipeline cũ lấy từ lịch sử git (commit đặt bằng SAI_DEV2_REF, mặc định 56e2ff1)",
+    "legacy: đối chiếu với pipeline cũ lấy từ lịch sử git (commit đặt bằng SAI_LEGACY_REF, mặc định 56e2ff1)",
 ]

@@ -1,4 +1,4 @@
-"""Encode văn bản thô thành chuỗi id theo định dạng dev_2.
+"""Encode văn bản thô thành chuỗi id để huấn luyện.
 
 - ``pretrain``: mỗi dòng JSONL ``{"text": ...}`` → x = [BOS] + tokens, y = tokens + [EOS]. Văn bản dài
   hơn ``max_seq_len`` được chia thành nhiều mẫu chồng lấn, cắt ở ranh giới tự nhiên (xem ``chunking``).

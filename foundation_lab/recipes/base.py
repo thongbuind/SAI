@@ -36,7 +36,7 @@ class StageContext:
 
 @dataclass
 class LMTrainParams:
-    """Tham số chung của các recipe causal LM. Mặc định = hành vi dev_2."""
+    """Tham số chung của các recipe causal LM."""
     epochs: int
     learning_rate: float
     weight_decay: float
@@ -44,7 +44,7 @@ class LMTrainParams:
     accumulation_steps: int = 1
     max_microbatch_tokens: int = 57_600
     warmup_ratio: float = 0.1
-    lr_schedule: str = "dev2_step"
+    lr_schedule: str = "warmup_stable_decay"
     adamw_fused: bool | None = True       # None: chỉ bật fused khi chạy CUDA
     max_grad_norm: float = 1.0
     loss_chunk_size: int = 4096

@@ -1,5 +1,4 @@
-"""Recipe ``sft``: SFT1/SFT2 (thay ``finetune`` của dev_2 finetune.py). SFT1 và SFT2 là cùng một
-recipe, chỉ khác dữ liệu và tham số.
+"""Recipe ``sft``: SFT1/SFT2. SFT1 và SFT2 là cùng một recipe, chỉ khác dữ liệu và tham số.
 
 Thuật toán:
 1. Đóng băng các block trong ``freeze_blocks``; optimizer chỉ chứa tham số còn trainable.
@@ -7,12 +6,12 @@ Thuật toán:
 3. Objective: ``params.objective`` (mặc định ``lm_ce``: CE next-token) chỉ trên token có loss mask = 1
    (câu trả lời của model + EOS).
 4. Chuẩn hoá: mẫu số cố định = ``target_loss_tokens`` của sampler (trung bình token chịu loss × batch_size).
-5. Lịch LR ``dev2_step`` với warmup 15%. Mỗi epoch: val, lưu best. Cuối cùng: test trên best.
+5. Lịch LR ``warmup_stable_decay`` với warmup 15%. Mỗi epoch: val, lưu best. Cuối cùng: test trên best.
 
-``resample_per_epoch=True`` (dev_2 dùng cho SFT2): mỗi epoch trộn lại nguồn phụ với seed = epoch rồi
-split lại; val/test cố định được dựng từ lần trộn với ``mix_seed`` mặc định. Đây là hành vi dev_2 và có
+``resample_per_epoch=True`` (bật cho SFT2 trong ``core/configs/base.yaml``): mỗi epoch trộn lại nguồn phụ
+với seed = epoch rồi split lại; val/test cố định được dựng từ lần trộn với ``mix_seed`` mặc định.
 LỖI ĐÃ BIẾT: tập trộn khác nhau giữa các lần nên phần lớn mẫu val/test lọt vào train của mỗi epoch
-(val/test loss lạc quan, việc chọn best theo val bị lệch). Giữ nguyên để tái lập dev_2; sửa ở mốc M2.
+(val/test loss lạc quan, việc chọn best theo val bị lệch). Sửa ở mốc M2.
 """
 
 import gc

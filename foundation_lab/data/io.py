@@ -1,4 +1,4 @@
-"""Đọc và ghi dữ liệu đã tokenize theo định dạng dev_2.
+"""Đọc và ghi dữ liệu đã tokenize.
 
 Một file ``.npz`` chứa ``X_flat/X_offsets``, ``Y_flat/Y_offsets``, ``lengths`` (và ``M_flat/M_offsets``
 cho SFT). Một ``manifest.json`` liệt kê nhiều shard ``.npz`` ghép thành một dataset logic.

@@ -37,12 +37,12 @@ def test_overrides_parse_yaml_values():
     assert data == {"a": {"b": 2.5, "c": [1, 2]}, "d": None}
 
 @pytest.mark.parametrize("size,freeze,workers", [
-    ("35M", [0, 1], 1), ("100M", [0, 1, 2], 4), ("375M", [0, 1, 2, 3], 1), ("500M", [0, 1], 1),
+    ("35M", [0, 1], 1), ("100M", [0, 1, 2], 4), ("375M", [0, 1, 2, 3], 1),
 ])
-def test_shipped_dev2_experiments_resolve_to_dev2_values(size, freeze, workers):
-    resolved = resolve_experiment(EXPERIMENT_CONFIG_DIR / f"dev2_{size}.yaml")
+def test_shipped_experiments_resolve_to_expected_values(size, freeze, workers):
+    resolved = resolve_experiment(EXPERIMENT_CONFIG_DIR / f"SAI_{size}.yaml")
     spec = validate_experiment(resolved)
-    assert spec.name == f"dev2_{size}"
+    assert spec.name == f"SAI_{size}"
     assert spec.runtime.num_workers == workers and spec.runtime.seed is None
     assert [n for n, s in spec.pipeline.items() if s.enabled] == ["pretrain", "sft1", "sft2"]
     pretrain, sft1, sft2 = (spec.pipeline[n].params for n in ("pretrain", "sft1", "sft2"))
@@ -54,9 +54,9 @@ def test_shipped_dev2_experiments_resolve_to_dev2_values(size, freeze, workers):
     assert sft2["resample_per_epoch"] is True
 
 def test_modular_model_config_extends_official():
-    from foundation_lab.paths import MODEL_CONFIG_DIR
+    from foundation_lab.paths import LAB_MODEL_CONFIG_DIR, MODEL_CONFIG_DIR
     official = load_with_extends(MODEL_CONFIG_DIR / "SAI_35M.yaml")
-    modular = load_with_extends(MODEL_CONFIG_DIR / "SAI_modular_35M.yaml")
+    modular = load_with_extends(LAB_MODEL_CONFIG_DIR / "SAI_modular_35M.yaml")
     assert modular["family"] == "SAI_modular"
     assert {k: v for k, v in modular.items() if k in official and k != "family"} == \
         {k: v for k, v in official.items() if k != "family"}

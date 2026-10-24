@@ -1,8 +1,9 @@
 """Chạy pipeline các stage của một experiment.
 
-Mỗi stage tương ứng một lần gọi script của dev_2 (``pretrain.py --phase pretrain``, ``finetune.py --phase sft1``...):
+Mỗi stage chạy như một lần huấn luyện độc lập:
 1. Đặt seed nếu ``runtime.seed`` có giá trị (stage thứ i dùng ``seed + i``).
-2. Dựng model mới từ registry (tiêu thụ RNG khởi tạo như khi dev_2 khởi động script), compile nếu bật.
+2. Dựng model mới từ registry (stage nào cũng tiêu thụ RNG khởi tạo trọng số, kể cả khi sau đó nạp ``init``),
+   compile nếu bật.
 3. Nạp trọng số khởi tạo theo ``init`` (bỏ qua khi resume từ checkpoint của chính stage).
 4. Chạy recipe; kết quả ghi vào ``stages/<stage>/done.json``.
 """

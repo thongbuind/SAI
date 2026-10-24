@@ -5,7 +5,7 @@ Model chính thức nằm ở ``SAI/modeling.py`` (họ ``SAI``). Phòng này ch
 
 | Cấp độ             | Ví dụ                         | Cách làm                                              |
 |--------------------|-------------------------------|-------------------------------------------------------|
-| Giá trị cấu hình   | num_layers, num_kv_heads      | Sửa ``config/models/*.yaml``                          |
+| Giá trị cấu hình   | num_layers, num_kv_heads      | Thêm file vào ``architecture/configs/``               |
 | Phép tính          | attention kernel tự viết      | Đăng ký vào ``ATTENTION_KERNELS`` (không đổi tham số) |
 | Thành phần         | attention/FFN/norm khác       | Đăng ký vào ``ATTENTIONS``/``FFNS``/``NORMS``         |
 | Họ mô hình         | encoder–decoder, SAI-VL       | ``ModelFamily`` mới đăng ký vào ``MODELS``            |

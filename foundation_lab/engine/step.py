@@ -37,7 +37,7 @@ def accumulate_lm_gradients(
     """Forward + backward một logical batch theo các microbatch, cộng dồn gradient.
 
     ``objective``: hàm loss lấy từ ``OBJECTIVES`` (xem hợp đồng trong ``objectives/registry.py``).
-    Chuẩn hoá theo token kiểu dev_2 ("fixed_denominator"): mỗi microbatch đóng góp
+    Chuẩn hoá theo token với mẫu số cố định ("fixed_denominator"): mỗi microbatch đóng góp
     ``loss_sum / denominator / accumulation_steps``, với ``denominator`` là số token mục tiêu
     của một logical batch do recipe quyết định (không phải số token thật của batch này).
 
@@ -91,7 +91,7 @@ def accumulate_lm_gradients(
     return logical_loss_sum, microbatch_count, microbatch_size
 
 def optimizer_step(model, optimizer, scheduler, scaler, max_grad_norm: float):
-    """Thứ tự của dev_2: unscale → clip → step → update scaler → zero_grad → scheduler.
+    """Thứ tự: unscale → clip → step → update scaler → zero_grad → scheduler.
 
     Lưu ý: scheduler vẫn bước kể cả khi GradScaler bỏ qua step vì gradient inf/nan (chỉ xảy ra với FP16).
     """

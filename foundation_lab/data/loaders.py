@@ -94,14 +94,13 @@ def build_dataloader(
     X, Y, lengths, batch_size, max_seq_len, num_workers, shuffle,
     mode, loss_masks=None,
 ):
-    """DataLoader kiểu dev_2.
+    """DataLoader cho causal LM.
 
     - ``pretrain`` + shuffle: ``RandomizedSortishBatchSampler`` (batch theo số mẫu).
     - ``finetune`` + shuffle: ``TokenBalancedSortishBatchSampler`` (batch theo số token chịu loss).
     - Không shuffle (val/test): xếp theo độ dài, cắt đều ``batch_size`` mẫu.
 
-    Khác dev_2 duy nhất: ``persistent_workers`` chỉ bật khi ``num_workers > 0``
-    (dev_2 luôn bật nên báo lỗi với ``num_workers=0``).
+    ``persistent_workers`` chỉ bật khi ``num_workers > 0`` (PyTorch báo lỗi nếu bật với ``num_workers=0``).
     """
     if mode not in {"pretrain", "finetune"}:
         raise ValueError(

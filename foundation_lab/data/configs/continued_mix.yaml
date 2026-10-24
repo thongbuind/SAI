@@ -1,4 +1,4 @@
-# Continued pretrain: dữ liệu mới + 3× số mẫu đó lấy ngẫu nhiên từ TOÀN BỘ pretrain (hành vi dev_2).
+# Continued pretrain: dữ liệu mới + 3× số mẫu đó lấy ngẫu nhiên từ TOÀN BỘ pretrain.
 kind: lm
 main: data/processed/continued_pretrain_data_ids.npz
 sub: data/processed/pretrain_manifest.json

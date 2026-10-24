@@ -1,22 +1,31 @@
 """Dòng lệnh của lab.
 
-    python -m foundation_lab run config/experiments/dev2_35M.yaml
-    python -m foundation_lab run config/experiments/dev2_35M.yaml --stages sft1,sft2 --init sft1=model/pretrained_35M.pt
-    python -m foundation_lab run --resume runs/dev2_35M/20261021-120000
-    python -m foundation_lab validate config/experiments/dev2_35M.yaml --set pipeline.sft1.params.epochs=1
+    python -m foundation_lab run foundation_lab/core/configs/SAI_35M.yaml
+    python -m foundation_lab run foundation_lab/core/configs/SAI_35M.yaml --stages sft1,sft2 --init sft1=model/pretrained_35M.pt
+    python -m foundation_lab run --resume runs/SAI_35M/20261021-120000
+    python -m foundation_lab validate foundation_lab/core/configs/SAI_35M.yaml --set pipeline.sft1.params.epochs=1
     python -m foundation_lab list
     python -m foundation_lab compare-kernel sdpa eager
     python -m foundation_lab encode pretrain --input data/raw/pretrain_data_*.jsonl --output-dir data/processed --manifest pretrain_manifest.json --model SAI_35M
     python -m foundation_lab encode sft --input data/raw/SFT_1.json --output data/processed/SFT1_data_ids.npz --model SAI_35M
     python -m foundation_lab train-tokenizer --input data/raw/pretrain_data.jsonl --output-dir runs/tokenizers/new
+    python -m foundation_lab infer foundation_lab/inference/configs/compare_35M.yaml --set device=cpu
+    python -m foundation_lab infer - < spec.json       # spec đọc từ stdin (web lab gửi spec theo cách này)
+    python -m foundation_lab describe                  # JSON: phòng, registry, schema spec của từng lệnh, model, trọng số
+
+Mã thoát: 0 xong; 2 lỗi config (chưa chạy gì); 1 lỗi khi chạy.
 """
 
 import argparse
+import json
 import sys
 import yaml
 import torch
 from foundation_lab.core.config import ConfigError
 from foundation_lab.tokenizer.train import OFFICIAL_VOCAB_SIZE
+
+# Tăng khi đổi ý nghĩa hoặc xoá khoá trong output của "describe".
+DESCRIBE_FORMAT_VERSION = 1
 
 def _parse_init(values) -> dict:
     result = {}
@@ -113,6 +122,72 @@ def cmd_train_tokenizer(args):
     model_path = train_tokenizer(resolve_project_path(args.input), resolve_project_path(args.output_dir), args.vocab_size)
     print(f"Tokenizer mới: {model_path}")
 
+def _read_spec(source: str) -> dict:
+    """Spec từ file YAML/JSON (có ``extends``) hoặc từ stdin khi ``source`` là ``-``."""
+    from foundation_lab.core.config import load_with_extends
+
+    if source != "-":
+        return load_with_extends(source)
+    data = yaml.safe_load(sys.stdin)
+    if not isinstance(data, dict):
+        raise ConfigError("spec đọc từ stdin: gốc phải là mapping")
+    return data
+
+def cmd_infer(args):
+    from foundation_lab.inference import COMMAND, resolve_inference, run_inference, validate_inference
+    from foundation_lab.paths import resolve_project_path
+    from foundation_lab.state.events import EventLog
+    from foundation_lab.state.lineage import collect_lineage, git_info
+    from foundation_lab.state.run import RunDir
+
+    resolved = resolve_inference(_read_spec(args.spec), args.set)
+    spec = validate_inference(resolved)
+    run_dir = RunDir.create(COMMAND, root=args.runs_root, run_id=args.run_id)
+    digest = run_dir.write_config(resolved)
+    run_dir.write_json("lineage.json", collect_lineage(digest, {"checkpoint": [resolve_project_path(spec.checkpoint)]}))
+    run_dir.append_invocation({"argv": sys.argv, "config_hash": digest, "git": git_info()})
+    print(f"Run dir: {run_dir.path}  (config_hash {digest[:12]})")
+
+    events = EventLog(run_dir.events_path)
+    try:
+        result = run_inference(spec, run_dir, events)
+    except Exception as error:
+        # Ghi lý do vào run rồi để lỗi đi tiếp: thư mục run tự cho biết lượt chạy đã thất bại.
+        events.emit("failed", error=f"{type(error).__name__}: {error}")
+        raise
+    for metric in result.metrics:
+        print(f"{metric.group:<20} {metric.name:<24} {metric.value:.4g} {metric.unit}")
+
+def cmd_describe(_args):
+    from foundation_lab import __version__
+    from foundation_lab.catalog import DEPARTMENTS
+    from foundation_lab.core.config import describe_dataclass
+    from foundation_lab.core.experiment import resolve_config_ref
+    from foundation_lab.inference import COMMAND as INFER_COMMAND, InferenceSpec
+    from foundation_lab.paths import INFERENCE_BENCHMARK, MODEL_CONFIG_DIRS, PROJECT_ROOT
+    from foundation_lab.state.checkpoint import find_weights, weights_by_model
+
+    model_names = sorted(path.stem for directory in MODEL_CONFIG_DIRS for path in directory.glob("*.yaml"))
+    model_configs = {name: resolve_config_ref(name, MODEL_CONFIG_DIRS, "model") for name in model_names}
+    description = {
+        "format_version": DESCRIBE_FORMAT_VERSION,
+        "lab_version": __version__,
+        "departments": {
+            department: [{"kind": registry.kind, "names": registry.names()} for registry in registries]
+            for department, registries in DEPARTMENTS.items()
+        },
+        "commands": {
+            INFER_COMMAND: {"department": "inference", "spec": describe_dataclass(InferenceSpec)},
+        },
+        "models": model_names,
+        "weights": find_weights(PROJECT_ROOT),
+        # Model → trọng số nạp được vào model đó; chỉ có model đang có trọng số trên máy.
+        "checkpoints": weights_by_model(PROJECT_ROOT, model_configs),
+        "benchmark_path": INFERENCE_BENCHMARK.relative_to(PROJECT_ROOT).as_posix(),
+    }
+    json.dump(description, sys.stdout, ensure_ascii=False, indent=2)
+    print()
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m foundation_lab", description="SAI training lab")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -165,6 +240,16 @@ def build_parser() -> argparse.ArgumentParser:
     tokenizer.add_argument("--output-dir", required=True, help="thư mục chưa tồn tại")
     tokenizer.add_argument("--vocab-size", type=int, default=OFFICIAL_VOCAB_SIZE)
     tokenizer.set_defaults(func=cmd_train_tokenizer)
+
+    infer = sub.add_parser("infer", help="so sánh các biến thể giải mã trên một checkpoint, ghi vào runs/infer/")
+    infer.add_argument("spec", help="file spec YAML/JSON, hoặc - để đọc từ stdin")
+    infer.add_argument("--set", action="append", help="override khoa.con=gia_tri (YAML)")
+    infer.add_argument("--runs-root", help="thư mục chứa các run (mặc định runs/)")
+    infer.add_argument("--run-id", help="tên thư mục run (mặc định theo thời gian)")
+    infer.set_defaults(func=cmd_infer)
+
+    describe = sub.add_parser("describe", help="in JSON mô tả lab cho công cụ bên ngoài (web lab)")
+    describe.set_defaults(func=cmd_describe)
     return parser
 
 def main(argv=None):

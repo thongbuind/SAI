@@ -1,7 +1,7 @@
 import numpy as np
 
 def split_train_val_test(X, Y, loss_masks, lengths, train_ratio, val_ratio, seed=54):
-    """Split kiểu dev_2: hoán vị theo VỊ TRÍ mẫu rồi cắt theo tỉ lệ.
+    """Split bằng cách hoán vị theo VỊ TRÍ mẫu rồi cắt theo tỉ lệ.
 
     Lưu ý: split phụ thuộc thứ tự mẫu đầu vào, không theo ID mẫu. Nếu tập đầu vào thay đổi
     (vd. trộn lại với seed khác) thì cùng một mẫu có thể rơi vào split khác.

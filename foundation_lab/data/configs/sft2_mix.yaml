@@ -1,4 +1,4 @@
-# SFT2: dữ liệu SFT2 + cùng số mẫu đó lấy ngẫu nhiên từ TOÀN BỘ SFT1 (hành vi dev_2).
+# SFT2: dữ liệu SFT2 + cùng số mẫu đó lấy ngẫu nhiên từ TOÀN BỘ SFT1.
 # Recipe sft với resample_per_epoch=true trộn lại mỗi epoch bằng mix_seed = số thứ tự epoch.
 kind: sft
 main: data/processed/SFT2_data_ids.npz

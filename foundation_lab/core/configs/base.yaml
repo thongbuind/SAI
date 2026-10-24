@@ -1,15 +1,14 @@
-# Tái hiện pipeline huấn luyện dev_2 (src/training/pretrain.py + finetune.py) trong lab.
-# Giá trị lấy từ config/base.json của dev_2. Mỗi kích thước model có file riêng kế thừa file này.
+# Pipeline huấn luyện chuẩn của SAI: pretrain → SFT1 → SFT2. Mỗi cỡ model có file riêng kế thừa file này.
 #
-# Hành vi dev_2 được giữ nguyên, kể cả các điểm chưa tốt đã biết (sẽ sửa thành tuỳ chọn ở mốc sau):
+# Điểm chưa tốt đã biết (sẽ thành tuỳ chọn ở mốc sau):
 # - pretrain/continued tính test loss trên trọng số CUỐI vòng lặp (final_eval: last), không phải best.
 # - sft2 trộn lại dữ liệu mỗi epoch (resample_per_epoch: true) làm val/test lọt vào train.
-# - SFT1 khởi tạo từ best của PRETRAIN (dev_2 không dùng continued cho SFT).
-description: Pipeline dev_2 (pretrain → SFT1 → SFT2), giữ nguyên hành vi để làm baseline.
+# - SFT1 khởi tạo từ best của PRETRAIN, không qua continued.
+description: Pipeline chuẩn pretrain → SFT1 → SFT2.
 
 runtime:
   device: auto
-  seed: null            # dev_2 không đặt seed; đặt số nguyên để run tái lập được
+  seed: null            # không đặt seed; đặt số nguyên để run tái lập được
   compile: true
   limited_max_autotune: false
   profile_kernels: false
@@ -20,11 +19,11 @@ runtime:
 stage_defaults:
   batch_size: 64
   accumulation_steps: 1
-  max_microbatch_tokens: 16384   # base.json ghi 57600 nhưng mọi file kích thước của dev_2 ghi đè thành 16384
+  max_microbatch_tokens: 16384
   max_grad_norm: 1.0
   loss_chunk_size: 4096
   checkpoint_every_steps: 5000
-  lr_schedule: dev2_step
+  lr_schedule: warmup_stable_decay
 
 pipeline:
   pretrain:
@@ -39,8 +38,7 @@ pipeline:
       final_eval: last
 
   continued:
-    # dev_2 có phase này nhưng dữ liệu continued chưa được encode (encoders.py của dev_2 để comment)
-    # và SFT1 không dùng kết quả của nó, nên mặc định tắt.
+    # Dữ liệu continued chưa được encode và SFT1 không dùng kết quả của stage này, nên mặc định tắt.
     enabled: false
     recipe: causal_lm
     data: continued_mix
@@ -62,7 +60,7 @@ pipeline:
       learning_rate: 2.0e-5
       weight_decay: 0.05
       warmup_ratio: 0.15
-      adamw_fused: null     # chỉ fused khi chạy CUDA, như dev_2
+      adamw_fused: null     # chỉ fused khi chạy CUDA
       final_eval: best
       freeze_blocks: []
       resample_per_epoch: false

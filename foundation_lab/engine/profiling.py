@@ -1,4 +1,4 @@
-"""Công cụ đo đạc chuyển nguyên từ dev_2: VRAM theo pha, ước tính FLOPs, đo TFLOPS, log kernel."""
+"""Công cụ đo đạc: VRAM theo pha, ước tính FLOPs, đo TFLOPS, log kernel."""
 
 import json
 import time

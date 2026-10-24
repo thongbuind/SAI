@@ -14,7 +14,7 @@ _LIMITED_MAX_AUTOTUNE = {
 }
 
 def select_device(name: str) -> torch.device:
-    """``auto`` chọn theo thứ tự cuda > mps > cpu như dev_2."""
+    """``auto`` chọn theo thứ tự cuda > mps > cpu."""
     if name == "auto":
         if torch.cuda.is_available():
             return torch.device("cuda")
@@ -30,7 +30,7 @@ def select_device(name: str) -> torch.device:
 class Runtime:
     """Môi trường thực thi dùng chung cho mọi stage: device, mixed precision, GradScaler, compile.
 
-    Chính sách precision giữ như dev_2: chỉ bật autocast trên CUDA; BF16 nếu GPU hỗ trợ,
+    Chính sách precision: chỉ bật autocast trên CUDA; BF16 nếu GPU hỗ trợ,
     ngược lại FP16 + GradScaler. GradScaler dùng chung cho các stage của một lần chạy.
     """
 

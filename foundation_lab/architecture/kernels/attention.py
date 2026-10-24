@@ -23,7 +23,7 @@ _SDPA_BACKENDS = [
 
 @ATTENTION_KERNELS.register("sdpa")
 def sdpa_attention(q, k, v, *, attn_mask=None, is_causal=False, dropout_p=0.0):
-    """Kernel của dev_2: PyTorch SDPA, ưu tiên Flash → memory-efficient → math."""
+    """Kernel PyTorch SDPA, ưu tiên Flash → memory-efficient → math."""
     with sdpa_kernel(_SDPA_BACKENDS):
         return F.scaled_dot_product_attention(
             q, k, v, attn_mask=attn_mask, is_causal=is_causal, dropout_p=dropout_p,

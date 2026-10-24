@@ -1,0 +1,11 @@
+# Bộ câu hỏi mặc định của phòng Suy luận. Spec khác dùng lại bằng "extends: benchmark.yaml".
+# Bàn thử nghiệm (web lab) mở sẵn bộ này và ghi đè file khi bấm "Lưu vào benchmark"; các dòng comment đầu file được giữ.
+prompts:
+- xin chào, bạn là ai?
+- thủ đô của việt nam là gì?
+- max verstappen là ai
+- cách nấu phở
+- bts có mấy thành viên
+- hieuthuhai sinh năm mấy
+- kiến trúc transformer
+- viết một câu ngắn về mùa thu hà nội.
