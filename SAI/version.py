@@ -1,13 +1,12 @@
 """Phiên bản của từng thành phần và của mô hình SAI.
 
-Mỗi file thành phần trong ``SAI/`` có hằng ``VERSION`` dạng ``devX.Y.Z``:
+Mỗi file thành phần trong ``SAI/`` có hằng ``VERSION`` dạng ``dev3.Y.Z``:
 
-- X: giai đoạn phát triển (dev3).
-- Y: tăng 1 khi thay đổi bắt buộc train lại mô hình (đổi tham số/state_dict, hoặc đổi phép tính
-  làm output khác); khi Y tăng thì Z về 0.
-- Z: tăng 1 khi thay đổi không cần train lại (vd. kernel nhanh hơn cho cùng output, sửa generate).
+- Y: tăng 1 khi thay đổi checkpoint mô hình (đổi tham số/state_dict, đổi tokenizer); khi Y tăng thì Z về 0.
+- Z: tăng 1 khi không cần train lại nhưng hành vi bản phát hành đổi (vd. kernel nhanh hơn cho cùng output, sửa generate làm output khác, tối ưu thay đổi lượng ram sử dụng).
 
-``MODEL_VERSION`` là phiên bản phát hành chung, kể cả thay đổi adapter hoặc đóng gói HF.
+Thay đổi không đổi hành vi (refactor, comment, docstring, model card, đóng gói HF) không tăng phiên bản.
+``MODEL_VERSION`` là phiên bản phát hành chung, kể cả thay đổi adapter HF làm hành vi khác.
 Thành phần được sửa nhận phiên bản phát hành mới; thành phần không đổi giữ phiên bản cũ.
 Mọi thành phần phải cùng giai đoạn và không lớn hơn phiên bản phát hành. Kiểm tra được gọi
 tường minh trước khi export, không phát sinh thao tác kiểm tra khi import.
