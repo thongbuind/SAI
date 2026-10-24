@@ -17,9 +17,18 @@ const MS_PER_SECOND = 1000;
 // Từ chừng này biến thể, cột câu trả lời giữ bề rộng tối thiểu và lưới cuộn ngang; ít hơn thì chia đều cho vừa khung.
 const SCROLL_FROM_VARIANTS = 4;
 
+function fractionDigits(value: number): number {
+  return Math.abs(value) >= LARGE_VALUE ? FRACTION_DIGITS_LARGE : FRACTION_DIGITS_SMALL;
+}
+
 export function formatNumber(value: number): string {
-  const digits = Math.abs(value) >= LARGE_VALUE ? FRACTION_DIGITS_LARGE : FRACTION_DIGITS_SMALL;
-  return value.toLocaleString("vi-VN", { maximumFractionDigits: digits });
+  return value.toLocaleString("vi-VN", { maximumFractionDigits: fractionDigits(value) });
+}
+
+// Làm tròn như formatNumber hiển thị, để hai ô cùng hiện một số thì cũng bằng nhau khi so ô tốt nhất.
+function roundAsDisplayed(value: number): number {
+  const scale = 10 ** fractionDigits(value);
+  return Math.round(value * scale) / scale;
 }
 
 export const formatSeconds = (ms: number) => `${formatNumber(ms / MS_PER_SECOND)} giây`;
@@ -31,7 +40,8 @@ function cell(tag: "th" | "td", text: string, className?: string): HTMLTableCell
   return element;
 }
 
-// Bảng metric: mỗi dòng một metric, mỗi cột một nhóm (biến thể); ô tốt nhất theo "better" được tô.
+// Bảng metric: mỗi dòng một metric, mỗi cột một nhóm (biến thể); ô tốt nhất theo "better" được tô,
+// so trên số đã làm tròn như hiển thị nên các ô hoà nhau đều được tô.
 export function metricsTable(metrics: Metric[]): HTMLTableElement {
   const groups = [...new Set(metrics.map(metric => metric.group))];
   const names = [...new Set(metrics.map(metric => metric.name))];
@@ -46,12 +56,12 @@ export function metricsTable(metrics: Metric[]): HTMLTableElement {
     const label = METRIC_LABELS[name] ?? name;
     row.append(cell("th", sample.unit ? `${label} (${sample.unit})` : label));
     const values = groups.map(group => metrics.find(metric => metric.name === name && metric.group === group));
-    const numbers = values.flatMap(metric => (metric ? [metric.value] : []));
+    const numbers = values.flatMap(metric => (metric ? [roundAsDisplayed(metric.value)] : []));
     const best = sample.better === "lower" ? Math.min(...numbers) : sample.better === "higher" ? Math.max(...numbers) : null;
     // Chỉ tô khi các nhóm khác nhau: một nhóm, hoặc mọi nhóm bằng nhau, thì không có gì để so.
     const comparable = groups.length > 1 && new Set(numbers).size > 1;
     for (const metric of values) {
-      const isBest = metric !== undefined && comparable && metric.value === best;
+      const isBest = metric !== undefined && comparable && roundAsDisplayed(metric.value) === best;
       row.append(cell("td", metric ? formatNumber(metric.value) : "—", isBest ? "is-best" : undefined));
     }
   }
