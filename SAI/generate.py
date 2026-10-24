@@ -135,7 +135,8 @@ def _build_input(user_input, tokenizer, *, max_seq_len, config, system=None, ins
     input_ids.extend(assistant_prefix)
     return input_ids, special
 
-def _validate_config(config):
+def validate_generation_config(config):
+    """Báo ValueError nếu giá trị của ``config`` nằm ngoài miền hợp lệ; gọi được trước khi nạp model."""
     if config.strategy not in {"auto", "beam", "greedy", "sample"}:
         raise ValueError("strategy must be auto, beam, greedy, or sample")
     if config.max_new_tokens < 1:
@@ -402,7 +403,7 @@ def generate(model, user_input=None, tokenizer=None, *, messages=None, system=No
     if tokenizer is None:
         raise ValueError("tokenizer is required")
     config = config or GenerationConfig()
-    _validate_config(config)
+    validate_generation_config(config)
     strategy = config.strategy
     if strategy == "auto":
         strategy = "greedy" if constraint is not None else "beam"
