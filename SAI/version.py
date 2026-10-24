@@ -2,7 +2,7 @@
 
 Mỗi file thành phần trong ``SAI/`` có hằng ``VERSION`` dạng ``dev3.Y.Z``:
 
-- Y: tăng 1 khi thay đổi checkpoint mô hình (đổi tham số/state_dict, đổi tokenizer); khi Y tăng thì Z về 0.
+- Y: tăng 1 khi thay đổi checkpoint mô hình (đổi tham số/state_dict, đổi phép tính làm output forward khác, đổi tokenizer); khi Y tăng thì Z về 0.
 - Z: tăng 1 khi không cần train lại nhưng hành vi bản phát hành đổi (vd. kernel nhanh hơn cho cùng output, sửa generate làm output khác, tối ưu thay đổi lượng ram sử dụng).
 
 Thay đổi không đổi hành vi (refactor, comment, docstring, model card, đóng gói HF) không tăng phiên bản.
