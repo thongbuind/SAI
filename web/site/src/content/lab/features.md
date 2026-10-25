@@ -68,6 +68,7 @@ order: 2
 
 - Chạy `python -m web --lab` để có thêm Phòng làm việc ở `/lab/workbench/`: nút bấm trên web gọi lệnh của lab, theo dõi tiến trình trực tiếp, huỷ được giữa chừng và đọc lại run cũ.
 - Chỉ mở được từ máy của bạn (localhost), vì nút bấm chạy code thật trên máy đó.
+- Bản web tĩnh (GitHub Pages) cũng có đủ các phòng nhưng chỉ để xem: form và mọi run lấy từ ảnh chụp `web/site/src/data/lab_snapshot.json`, không chạy được mô hình. Server `--lab` tự chụp lại sau mỗi job; run chạy bằng dòng lệnh thì chụp bằng `python -m web.scripts.export_lab_snapshot`.
 - Hiện có hai phòng: Kiến trúc (so một attention kernel với kernel mặc định của từng model) và Suy luận (so sánh các cách giải mã trên cùng một checkpoint và cùng bộ câu hỏi).
 - Mọi so sánh có cấu hình mặc định hiện tại làm mốc, mang nhãn "mốc" trên trang; mỗi run có dòng lệnh để chạy lại đúng như cũ từ dòng lệnh.
 

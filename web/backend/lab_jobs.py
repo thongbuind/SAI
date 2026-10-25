@@ -2,6 +2,8 @@
 
 Mỗi lúc chỉ chạy một job (máy 8GB RAM, mỗi job nạp một model). Trạng thái job chỉ giữ trong bộ nhớ;
 kết quả thật nằm trong thư mục run do lab ghi, nên server khởi động lại vẫn đọc được lịch sử (xem runs.py).
+Mỗi job kết thúc (xong, lỗi hay bị huỷ) thì gọi ``after_job`` nếu có: server dùng nó để chụp lại phòng làm việc cho
+bản static (lab_snapshot.py).
 """
 
 import asyncio
@@ -9,6 +11,7 @@ import json
 import logging
 import secrets
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -43,10 +46,14 @@ def new_run_id() -> str:
     return f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(RUN_ID_SUFFIX_BYTES)}"
 
 class JobRunner:
-    def __init__(self, lab_command: tuple[str, ...], project_root: Path, runs_root: Path):
+    def __init__(
+        self, lab_command: tuple[str, ...], project_root: Path, runs_root: Path,
+        after_job: Callable[[], None] | None = None,
+    ):
         self.lab_command = lab_command
         self.project_root = project_root
         self.runs_root = runs_root
+        self.after_job = after_job
         self._jobs: dict[tuple[str, str], Job] = {}
         self._queue: asyncio.Queue[Job] = asyncio.Queue()
         self._worker_task: asyncio.Task | None = None
@@ -96,6 +103,16 @@ class JobRunner:
             if job.state == "cancelled":
                 continue
             await self._run(job)
+            if self.after_job is not None:
+                await self._call_after_job(job)
+
+    async def _call_after_job(self, job: Job):
+        # Chạy trong thread vì đọc, ghi file. Lỗi ở đây không được làm chết worker (các job đang chờ sẽ kẹt mãi):
+        # ghi log kèm traceback rồi chạy job tiếp theo.
+        try:
+            await asyncio.to_thread(self.after_job)
+        except Exception:
+            logger.exception("after_job lỗi sau job %s/%s", job.command, job.run_id)
 
     async def _run(self, job: Job):
         job.state = "running"

@@ -1,8 +1,7 @@
 ---
 // Route /lab/workbench/[department]/: phòng làm việc của một phòng, cùng khung với trang tài liệu Lab
 // (navbar, sidebar Lab | kết quả | control center). Bố cục và các mốc màn hình trong styles/lab.css.
-// Không nằm trong src/pages: astro.config.mjs chỉ đăng ký route này khi build bản server, để bản static
-// không chứa JS/CSS của phòng làm việc.
+// Có ở cả hai bản; bản static chỉ xem (TaskBench đọc ảnh chụp thay cho API lab). Route đăng ký trong astro.config.mjs.
 import "../../styles/lab.css";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumb from "../docs/Breadcrumb.astro";

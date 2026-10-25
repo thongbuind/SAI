@@ -19,3 +19,5 @@ MODEL_CONFIG_DIR = PROJECT_ROOT / "config" / "models"
 TOKENIZER_MODEL = PROJECT_ROOT / "SAI" / "tokenizer.model"
 # Phòng làm việc: thư mục run mà lệnh foundation_lab ghi ra (cùng mặc định với foundation_lab.paths.RUNS_DIR).
 RUNS_DIR = PROJECT_ROOT / "runs"
+# Ảnh chụp phòng làm việc mà bản static đọc thay cho API lab (lab_snapshot.py).
+LAB_SNAPSHOT_FILE = WEB_DIR / "site" / "src" / "data" / "lab_snapshot.json"

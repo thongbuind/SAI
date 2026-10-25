@@ -1,8 +1,9 @@
 // Một mã nguồn, hai bản deploy. Chọn bản bằng PUBLIC_DEPLOY_TARGET lúc build:
 // - static: GitHub Pages, chạy dưới BASE_PATH (vd. /SAI), trang /try/ là hướng dẫn tải mô hình.
-// - server: FastAPI phục vụ ở gốc /, trang /try/ là chat, có thêm phòng làm việc /lab/workbench/<phòng>/ (nút bấm
-//   chạy được khi server bật --lab). Khi chạy dev:server, /api chuyển tới FastAPI (python -m web) để frontend và
-//   API cùng origin như lúc deploy.
+// - server: FastAPI phục vụ ở gốc /, trang /try/ là chat, nút bấm ở phòng làm việc /lab/workbench/<phòng>/ chạy được
+//   khi server bật --lab. Khi chạy dev:server, /api chuyển tới FastAPI (python -m web) để frontend và API cùng origin
+//   như lúc deploy.
+// Phòng làm việc có ở cả hai bản; bản static chỉ xem, đọc ảnh chụp src/data/lab_snapshot.json thay cho API lab.
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "astro/config";
 
@@ -20,8 +21,7 @@ if (target === "static" && !process.env.BASE_PATH) {
   throw new Error("Bản static cần BASE_PATH (vd. /SAI) vì GitHub Pages phục vụ web dưới tên repo");
 }
 
-// Phòng làm việc chỉ có ở bản server: route được đăng ký ở đây thay vì đặt trong src/pages, vì Astro gom JS/CSS của
-// mọi trang trong src/pages vào bản build kể cả khi getStaticPaths không trả trang nào.
+// Route phòng làm việc, đăng ký cho cả hai bản.
 const WORKBENCH_ROUTE = {
   name: "sai-lab-workbench",
   hooks: {
@@ -36,7 +36,7 @@ export default defineConfig({
   base: target === "static" ? process.env.BASE_PATH : "/",
   outDir: `./dist/${target}`,
   trailingSlash: "always",
-  integrations: target === "server" ? [WORKBENCH_ROUTE] : [],
+  integrations: [WORKBENCH_ROUTE],
   markdown: {
     // Khối code trong tài liệu Markdown dùng chung cách tô màu với <CodeBlock> (ánh xạ trong base.css).
     shikiConfig: { theme: "css-variables" },

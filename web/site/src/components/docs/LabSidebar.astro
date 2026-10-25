@@ -1,9 +1,8 @@
 ---
-// Sidebar Lab: nhóm tài liệu theo group (Tổng quan, Bắt đầu). Bản server có thêm nhóm "Phòng làm việc", trong đó phòng
-// chưa có lệnh (trang chờ) mang nhãn "sắp có".
+// Sidebar Lab: nhóm tài liệu theo group (Tổng quan, Bắt đầu), rồi nhóm "Phòng làm việc", trong đó phòng chưa có lệnh
+// (trang chờ) mang nhãn "sắp có".
 import { LAB_GROUPS } from "../../content.config";
 import { url } from "../../lib/paths";
-import { deployTarget } from "../../lib/target";
 import { WORKBENCH_PAGES } from "../../lib/lab/workbench";
 import type { LabDoc } from "../../lib/docs";
 
@@ -13,7 +12,6 @@ interface Props {
   currentId?: string;
 }
 const { docs, currentId } = Astro.props;
-const workbench = deployTarget() === "server" ? WORKBENCH_PAGES : [];
 ---
 <nav class="sidebar" aria-label="Tài liệu Foundation Lab">
   {LAB_GROUPS.map(group => (
@@ -24,14 +22,12 @@ const workbench = deployTarget() === "server" ? WORKBENCH_PAGES : [];
       ))}
     </div>
   ))}
-  {workbench.length > 0 && (
-    <div class="group">
-      <p class="t-overline">Phòng làm việc</p>
-      {workbench.map(page => (
-        <a class="item" href={url(`/lab/workbench/${page.department}/`)} aria-current={`workbench/${page.department}` === currentId ? "page" : undefined}>{page.title}{"planned" in page && <span class="soon">sắp có</span>}</a>
-      ))}
-    </div>
-  )}
+  <div class="group">
+    <p class="t-overline">Phòng làm việc</p>
+    {WORKBENCH_PAGES.map(page => (
+      <a class="item" href={url(`/lab/workbench/${page.department}/`)} aria-current={`workbench/${page.department}` === currentId ? "page" : undefined}>{page.title}{"planned" in page && <span class="soon">sắp có</span>}</a>
+    ))}
+  </div>
 </nav>
 
 <style>

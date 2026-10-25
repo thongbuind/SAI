@@ -1,7 +1,10 @@
 // Gọi API của phòng làm việc (web/backend/lab_routes.py, /api/lab). Kiểu dữ liệu ở đây là hợp đồng với lab:
 // output "python -m foundation_lab describe" và file trong runs/<lệnh>/<run_id>/ (events.jsonl, result.json).
-import { jsonBody, query, requestJson } from "../http";
+// Bản static (GitHub Pages) không có API: các hàm đọc lấy từ ảnh chụp src/data/lab_snapshot.json (do
+// web/backend/lab_snapshot.py ghi), còn gửi job, huỷ, theo dõi và lưu benchmark chỉ có ở bản server.
+import { RequestError, jsonBody, query, requestJson } from "../http";
 import { url } from "../paths";
+import { deployTarget } from "../target";
 
 // Phải khớp DESCRIBE_FORMAT_VERSION trong foundation_lab/cli.py (web/backend/lab_cli.py cũng kiểm tra lúc khởi động).
 export const DESCRIBE_FORMAT_VERSION = 1;
@@ -49,6 +52,14 @@ export interface RunResult {
 }
 export interface RunSummary { command: string; run_id: string; state: RunState; config: Record<string, unknown> | null }
 export interface RunDetail extends RunSummary { events: LabEvent[]; result: RunResult | null; stderr: string[] }
+export interface LabSnapshot {
+  // Giờ máy lúc chụp, ISO không múi giờ (vd. 2026-10-26T09:15:00).
+  captured_at: string;
+  description: Description;
+  benchmark: string[];
+  // Lệnh → mọi run trên đĩa, mới nhất trước.
+  runs: Record<string, RunDetail[]>;
+}
 
 const STATUS_TEXT: Record<number, string> = {
   403: "Phòng làm việc chỉ mở được từ localhost.",
@@ -57,12 +68,31 @@ const STATUS_TEXT: Record<number, string> = {
 
 const request = <T>(path: string, init?: RequestInit) => requestJson<T>(path, init, STATUS_TEXT);
 
-export const fetchDescription = () => request<Description>("/api/lab/describe");
+export const IS_STATIC = deployTarget() === "static";
 
-export const listRuns = (command: string) =>
-  request<{ runs: RunSummary[] }>("/api/lab/jobs" + query({ command })).then(body => body.runs);
+// Import động: ảnh chụp thành file riêng, chỉ tải ở bản static; tải một lần cho mọi trang phòng làm việc.
+let snapshot: Promise<LabSnapshot> | null = null;
+export function loadSnapshot(): Promise<LabSnapshot> {
+  snapshot ??= import("../../data/lab_snapshot.json").then(module => module.default as unknown as LabSnapshot);
+  return snapshot;
+}
 
-export const getRun = (command: string, runId: string) => request<RunDetail>(`/api/lab/jobs/${command}/${runId}`);
+export const fetchDescription = (): Promise<Description> =>
+  IS_STATIC ? loadSnapshot().then(data => data.description) : request<Description>("/api/lab/describe");
+
+export const listRuns = (command: string): Promise<RunSummary[]> =>
+  IS_STATIC
+    ? loadSnapshot().then(data => data.runs[command] ?? [])
+    : request<{ runs: RunSummary[] }>("/api/lab/jobs" + query({ command })).then(body => body.runs);
+
+async function snapshotRun(command: string, runId: string): Promise<RunDetail> {
+  const run = (await loadSnapshot()).runs[command]?.find(item => item.run_id === runId);
+  if (!run) throw new RequestError(`Ảnh chụp không có run ${command}/${runId}.`);
+  return run;
+}
+
+export const getRun = (command: string, runId: string): Promise<RunDetail> =>
+  IS_STATIC ? snapshotRun(command, runId) : request<RunDetail>(`/api/lab/jobs/${command}/${runId}`);
 
 export const submitJob = (command: string, spec: Record<string, unknown>) =>
   request<{ command: string; run_id: string }>("/api/lab/jobs", jsonBody({ command, spec })).then(body => body.run_id);
@@ -71,7 +101,10 @@ export const cancelJob = (command: string, runId: string) =>
   request<{ state: RunState }>(`/api/lab/jobs/${command}/${runId}/cancel`, { method: "POST" });
 
 // Bộ câu hỏi mặc định của phòng Suy luận, lưu trong lab (benchmark_path của describe).
-export const fetchBenchmark = () => request<{ prompts: string[] }>("/api/lab/benchmark").then(body => body.prompts);
+export const fetchBenchmark = (): Promise<string[]> =>
+  IS_STATIC
+    ? loadSnapshot().then(data => data.benchmark)
+    : request<{ prompts: string[] }>("/api/lab/benchmark").then(body => body.prompts);
 
 export const saveBenchmark = (prompts: string[]) =>
   request<{ prompts: string[] }>("/api/lab/benchmark", { ...jsonBody({ prompts }), method: "PUT" }).then(body => body.prompts);

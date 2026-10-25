@@ -1,6 +1,6 @@
 // Phòng Suy luận (lệnh infer): bảng metric theo biến thể và lưới câu trả lời câu hỏi × biến thể. Ô câu hỏi mở sẵn
 // benchmark của lab (foundation_lab/inference/configs/benchmark.yaml), có nút ghi đè benchmark khi đã sửa.
-import { fetchBenchmark, saveBenchmark } from "../labApi";
+import { IS_STATIC, fetchBenchmark, saveBenchmark } from "../labApi";
 import type { Control } from "../specForm";
 import { baselineBadge, formatSeconds, metricsTable, panel } from "../resultView";
 import { normalizeAIText } from "../../chatRender";
@@ -39,9 +39,10 @@ function benchmarkBar(prompts: Control, saved: string[], showError: (message: st
 
   function render() {
     const isSaved = JSON.stringify(prompts.read()) === JSON.stringify(benchmark);
-    status.textContent = isSaved ? `Benchmark của lab · ${benchmark.length} câu` : "Đã sửa, chưa lưu vào benchmark";
+    const editedText = IS_STATIC ? "Đã sửa, bản web tĩnh không lưu được" : "Đã sửa, chưa lưu vào benchmark";
+    status.textContent = isSaved ? `Benchmark của lab · ${benchmark.length} câu` : editedText;
     bar.dataset.saved = String(isSaved);
-    save.hidden = isSaved;
+    save.hidden = isSaved || IS_STATIC;
   }
   save.addEventListener("click", async () => {
     showError(null);

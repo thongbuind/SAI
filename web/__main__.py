@@ -17,10 +17,11 @@ import uvicorn
 from web.backend.lab_cli import LAB_COMMAND, describe
 from web.backend.lab_jobs import JobRunner
 from web.backend.lab_routes import Lab
+from web.backend.lab_snapshot import LabSnapshot
 from web.backend.main import create_app
 from web.backend.model_loader import SERVED_MODELS, SOURCES, loader_for
 from web.backend.model_registry import ModelRegistry
-from web.backend.paths import PROJECT_ROOT, RUNS_DIR, SITE_DIR
+from web.backend.paths import LAB_SNAPSHOT_FILE, PROJECT_ROOT, RUNS_DIR, SITE_DIR
 
 # Mô hình đầu danh sách là mặc định và được nạp trước.
 DEFAULT_MODELS = "SAI_100M,SAI_35M,SAI_375M"
@@ -61,7 +62,10 @@ def main(argv: list[str] | None = None) -> None:
     lab = None
     if args.lab:
         # describe chạy một lần lúc khởi động; có checkpoint hay config mới thì khởi động lại server.
-        lab = Lab(JobRunner(LAB_COMMAND, PROJECT_ROOT, RUNS_DIR), describe(LAB_COMMAND, PROJECT_ROOT), RUNS_DIR)
+        description = describe(LAB_COMMAND, PROJECT_ROOT)
+        # Mỗi job xong thì chụp lại phòng làm việc cho bản static.
+        snapshot = LabSnapshot(description, PROJECT_ROOT, RUNS_DIR, LAB_SNAPSHOT_FILE)
+        lab = Lab(JobRunner(LAB_COMMAND, PROJECT_ROOT, RUNS_DIR, after_job=snapshot.write), description, RUNS_DIR)
     app = create_app(SITE_DIR, ModelRegistry(args.models, loader_for(args.source)), lab)
     uvicorn.run(app, host=args.host, port=args.port)
 

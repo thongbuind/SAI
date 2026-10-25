@@ -4,9 +4,11 @@
 // Phần chung ở đây: form dựng từ describe, lịch sử run, trạng thái, tiến trình qua SSE, xác nhận, huỷ, dòng lệnh chạy
 // lại. Phần riêng của từng lệnh (tóm tắt, câu xác nhận, cách vẽ kết quả) nằm trong src/lib/lab/views/. Nút Chạy gọi
 // "python -m foundation_lab <lệnh>" qua web/backend (python -m web --lab); kết quả đọc từ runs/<lệnh>/<run_id>/.
+// Bản static chỉ xem: form và các lần chạy lấy từ ảnh chụp (labApi.ts), nút Chạy tắt.
 // Phần tử tạo lúc chạy dùng style trong styles/lab.css.
 import Button from "../Button.astro";
 import Icon from "../Icon.astro";
+import { deployTarget } from "../../lib/target";
 
 interface Props {
   command: string;
@@ -14,6 +16,7 @@ interface Props {
   empty: string;
 }
 const { command, empty } = Astro.props;
+const isStatic = deployTarget() === "static";
 ---
 <section class="wb-stage" id="bench" data-command={command} aria-label="Kết quả">
   <slot />
@@ -34,7 +37,11 @@ const { command, empty } = Astro.props;
   <div class="stage-body" aria-live="polite">
     <div class="stage-empty" id="bench-empty">
       <p class="t-h4">Chưa có lần chạy</p>
-      <p class="t-small">{empty} Lệnh <code>python -m foundation_lab {command}</code> chạy trên máy này; kết quả nằm trong <code>runs/{command}/</code>.</p>
+      {isStatic ? (
+        <p class="t-small">Ảnh chụp chưa có lần chạy nào của lệnh này. Lệnh <code>python -m foundation_lab {command}</code> chạy trên máy có repo; kết quả nằm trong <code>runs/{command}/</code>.</p>
+      ) : (
+        <p class="t-small">{empty} Lệnh <code>python -m foundation_lab {command}</code> chạy trên máy này; kết quả nằm trong <code>runs/{command}/</code>.</p>
+      )}
     </div>
     <p class="bench-error" id="bench-run-error" role="alert" hidden></p>
     <div class="stage-result" id="bench-result"></div>
@@ -55,6 +62,7 @@ const { command, empty } = Astro.props;
   </header>
   <div class="control-body" id="bench-fields"><p class="t-caption">Đang đọc mô tả lab…</p></div>
   <footer class="control-foot">
+    {isStatic && <p class="t-caption" id="bench-static-note">Bản web tĩnh chỉ để xem, không chạy được mô hình. Muốn chạy, clone repo rồi chạy <code>python start.py</code>.</p>}
     <p class="bench-error" id="bench-form-error" role="alert" hidden></p>
     <div class="control-actions">
       <span class="t-caption" id="bench-run-count"></span>
@@ -75,8 +83,8 @@ const { command, empty } = Astro.props;
 
 <script>
   import {
-    ACTIVE_STATES, DESCRIBE_FORMAT_VERSION, cancelJob, fetchDescription, getRun, listRuns, submitJob, watchRun,
-    type LabEvent, type RunDetail, type RunState, type RunSummary,
+    ACTIVE_STATES, DESCRIBE_FORMAT_VERSION, IS_STATIC, cancelJob, fetchDescription, getRun, listRuns, loadSnapshot, submitJob,
+    watchRun, type LabEvent, type RunDetail, type RunState, type RunSummary,
   } from "../../lib/lab/labApi";
   import { FormError, objectControl, type Control, type FieldHints } from "../../lib/lab/specForm";
   import { TASK_VIEWS } from "../../lib/lab/views";
@@ -92,6 +100,8 @@ const { command, empty } = Astro.props;
   };
   // run_id của lab: "20261024-021117-8eb5" (ngày-giờ-hậu tố).
   const RUN_ID_PATTERN = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/;
+  // captured_at của ảnh chụp: "2026-10-26T09:15:00".
+  const CAPTURED_AT_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
 
   // Trang Lab chuyển trang bằng ClientRouter (BaseLayout) nên script này chỉ chạy một lần mỗi lần tải trang thật:
   // dựng phòng làm việc cho từng trang ở astro:page-load (có cả lần tải đầu) và dọn nó trước khi thân trang bị thay
@@ -338,6 +348,14 @@ const { command, empty } = Astro.props;
 
     rerunCopy.addEventListener("click", () => void copyToClipboard(rerunCopy, rerunCommand.textContent ?? ""));
 
+    async function showCapturedAt() {
+      const { captured_at } = await loadSnapshot();
+      const match = CAPTURED_AT_PATTERN.exec(captured_at);
+      if (!match) throw new Error(`lab_snapshot.json: captured_at sai định dạng: ${captured_at}`);
+      const note = $("bench-static-note");
+      note.prepend(`Ảnh chụp lúc ${match[4]}:${match[5]} ${match[3]}/${match[2]}/${match[1]}. `);
+    }
+
     async function init() {
       try {
         const [description, initial] = await Promise.all([fetchDescription(), view.loadInitial?.() ?? Promise.resolve({})]);
@@ -353,7 +371,8 @@ const { command, empty } = Astro.props;
         fields.addEventListener("input", updateRunCount);
         fields.addEventListener("change", updateRunCount);
         updateRunCount();
-        runButton.disabled = false;
+        runButton.disabled = IS_STATIC;
+        if (IS_STATIC) await showCapturedAt();
         await refreshHistory();
         if (runs.length > 0) await openRun(runs[0].run_id);
       } catch (error) {

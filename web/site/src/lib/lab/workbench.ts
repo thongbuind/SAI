@@ -1,6 +1,6 @@
-// Trang phòng làm việc theo phòng, chỉ có ở bản server: /lab/workbench/<department>/, theo thứ tự phòng trong docstring
-// của foundation_lab. department là mã phòng trong docstring đó (vd. arch), cũng là phòng mà describe ghi cho lệnh của
-// phòng; description là dòng giới thiệu dưới tiêu đề trang.
+// Trang phòng làm việc theo phòng, ở cả hai bản (bản static chỉ xem): /lab/workbench/<department>/, theo thứ tự phòng
+// trong docstring của foundation_lab. department là mã phòng trong docstring đó (vd. arch), cũng là phòng mà describe
+// ghi cho lệnh của phòng; description là dòng giới thiệu dưới tiêu đề trang.
 // - Phòng đã chạy được từ web có command: lệnh của foundation_lab mà trang gọi (khoá trong "commands" của describe,
 //   phần riêng của lệnh nằm trong views/), và empty: câu đầu của trạng thái chưa có lần chạy.
 // - Phòng chưa có lệnh là trang chờ (components/lab/PlannedBench.astro), có planned: lệnh dự kiến của phòng, null khi

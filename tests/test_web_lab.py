@@ -1,4 +1,5 @@
-"""Phòng làm việc (``python -m web --lab``, /api/lab): chặn Host lạ, kiểm spec, hàng đợi job, SSE, huỷ, đọc run.
+"""Phòng làm việc (``python -m web --lab``, /api/lab): chặn Host lạ, kiểm spec, hàng đợi job, SSE, huỷ, đọc run,
+ảnh chụp cho bản static.
 
 Phần lớn test dùng một "lab giả" (script Python nhỏ ghi đúng định dạng thư mục run) để chạy nhanh và
 điều khiển được kết quả. Hai test cuối gọi lệnh lab thật để kiểm hợp đồng giữa hai bên.
@@ -19,6 +20,7 @@ from web.backend.lab_cli import LAB_COMMAND, describe
 from web.backend.lab_jobs import MAX_QUEUE, JobRunner
 from web.backend.lab_routes import Lab, host_name
 from web.backend.lab_runs import read_events
+from web.backend.lab_snapshot import LabSnapshot
 from web.backend.main import create_app
 from web.backend.model_registry import ModelRegistry
 from web.backend.paths import PROJECT_ROOT
@@ -280,6 +282,51 @@ def test_runs_written_outside_the_server_are_read_from_disk(client, runs_root):
     assert runs[0]["config"] == {"prompts": ["a"]}
     assert sse_events(client, "20261022-100000")[-1] == ("end", {"state": "incomplete"})
 
+def test_snapshot_has_every_run_on_disk_like_the_api(client, tmp_path, runs_root):
+    """Bản static đọc ảnh chụp thay cho API: mỗi run giống GET /api/lab/jobs/<lệnh>/<run_id>, trừ stderr (chỉ job trong
+    bộ nhớ mới có); lệnh chưa có run vẫn có khoá với danh sách rỗng."""
+    ok_id = submit(client, "ok")
+    wait_state(client, ok_id, ("succeeded",))
+    fail_id = submit(client, "fail")
+    wait_state(client, fail_id, ("failed",))
+    out_path = tmp_path / "lab_snapshot.json"
+    LabSnapshot(DESCRIPTION, tmp_path, runs_root, out_path).write()
+
+    snapshot = json.loads(out_path.read_text(encoding="utf-8"))
+    assert snapshot["description"] == DESCRIPTION
+    assert snapshot["benchmark"] == ["xin chào"]
+    assert snapshot["runs"].keys() == DESCRIPTION["commands"].keys()
+    assert snapshot["runs"]["compare-kernel"] == []
+    assert [run["run_id"] for run in snapshot["runs"]["infer"]] == [fail_id, ok_id]
+    for run in snapshot["runs"]["infer"]:
+        detail = client.get(f"/api/lab/jobs/infer/{run['run_id']}").json()
+        assert run == {**detail, "stderr": []}
+
+def test_runner_calls_after_job_and_keeps_running_when_it_fails(tmp_path, runs_root):
+    """after_job (chụp ảnh cho bản static) chạy sau mỗi job; lỗi trong đó không làm kẹt các job sau."""
+    script = tmp_path / "fake_lab.py"
+    script.write_text(FAKE_LAB, encoding="utf-8")
+    calls = []
+
+    def after_job():
+        calls.append(len(calls))
+        if len(calls) == 1:
+            raise OSError("đĩa đầy")
+
+    async def run_jobs():
+        runner = JobRunner((sys.executable, str(script)), tmp_path, runs_root, after_job=after_job)
+        runner.start()
+        jobs = [runner.submit("infer", fake_spec("ok")), runner.submit("infer", fake_spec("fail"))]
+        deadline = time.monotonic() + WAIT_TIMEOUT_SEC
+        while len(calls) < len(jobs) and time.monotonic() < deadline:
+            await asyncio.sleep(POLL_SEC)
+        await runner.stop()
+        return jobs
+
+    jobs = asyncio.run(run_jobs())
+    assert [job.state for job in jobs] == ["succeeded", "failed"]
+    assert calls == [0, 1]
+
 def test_read_events_skips_partial_last_line(tmp_path):
     path = tmp_path / "events.jsonl"
     path.write_text('{"seq": 1, "kind": "started"}\n{"seq": 2, "ki', encoding="utf-8")
@@ -383,3 +430,7 @@ def test_real_lab_infer_through_runner(tmp_path):
     assert result["format_version"] == 1 and len(result["records"]) == 1
     events, _ = read_events(run_path / "events.jsonl")
     assert events[-1]["kind"] == "finished"
+    # python -m đặt argv[0] tuyệt đối; lab ghi lại tương đối theo gốc dự án. runs_root nằm ngoài dự án nên giữ nguyên.
+    invocation = json.loads((run_path / "invocations.jsonl").read_text(encoding="utf-8"))
+    assert invocation["argv"][0] == "foundation_lab/__main__.py"
+    assert invocation["argv"][invocation["argv"].index("--runs-root") + 1] == str(tmp_path / "runs")

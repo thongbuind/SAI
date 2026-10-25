@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import yaml
+from web.backend.lab_cli import BENCHMARK_KEY, read_benchmark
 from web.backend.lab_jobs import ACTIVE_STATES, JobRunner, QueueFull
 from web.backend.lab_runs import EVENTS_FILE, TERMINAL_EVENTS, list_run_ids, read_events, run_detail, run_state, run_summary
 
@@ -57,7 +58,6 @@ def lab_disabled(path: str):
 # run_id thành một phần đường dẫn trên đĩa: chỉ nhận ký tự an toàn, chặn "..", "/".
 RunId = Annotated[str, Path(pattern=r"^[A-Za-z0-9_\-]+$")]
 EVENTS_POLL_SEC = 0.25
-BENCHMARK_KEY = "prompts"
 
 # Kiểm tra spec theo lệnh trước khi chạy: mọi tên model, trọng số... phải nằm trong danh sách của describe, để web
 # không chuyển đường dẫn tuỳ ý từ trình duyệt xuống lệnh lab. Lab vẫn kiểm tra lại toàn bộ spec khi chạy.
@@ -189,8 +189,7 @@ def _benchmark_path(request: Request) -> FilePath:
 
 @router.get("/benchmark")
 def get_benchmark(request: Request) -> Benchmark:
-    with open(_benchmark_path(request), "r", encoding="utf-8") as f:
-        return Benchmark(prompts=yaml.safe_load(f)[BENCHMARK_KEY])
+    return Benchmark(prompts=read_benchmark(_benchmark_path(request)))
 
 @router.put("/benchmark")
 def put_benchmark(request: Request, body: Benchmark) -> Benchmark:

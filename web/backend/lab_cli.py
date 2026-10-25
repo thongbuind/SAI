@@ -7,13 +7,15 @@ Web phụ thuộc lab qua hai hợp đồng, không qua import:
 - File trong ``runs/<lệnh>/<run_id>/``: ``resolved_config.yaml``, ``events.jsonl``, ``result.json``.
 - File benchmark của phòng Suy luận (``benchmark_path`` trong ``describe``): YAML ``prompts: [...]``, web đọc và ghi.
 
-File này gọi lệnh ``describe``; hàng đợi job ở lab_jobs.py, đọc thư mục run ở lab_runs.py, API ở lab_routes.py.
+File này gọi lệnh ``describe`` và đọc file benchmark; hàng đợi job ở lab_jobs.py, đọc thư mục run ở lab_runs.py,
+API ở lab_routes.py, ảnh chụp cho bản static ở lab_snapshot.py.
 """
 
 import json
 import subprocess
 import sys
 from pathlib import Path
+import yaml
 
 # Lệnh lab chạy bằng đúng Python đang chạy server (cùng môi trường cài đặt).
 LAB_COMMAND = (sys.executable, "-m", "foundation_lab")
@@ -21,6 +23,7 @@ LAB_COMMAND = (sys.executable, "-m", "foundation_lab")
 DESCRIBE_FORMAT_VERSION = 1
 RESULT_FORMAT_VERSION = 1
 STDERR_TAIL_CHARS = 2000
+BENCHMARK_KEY = "prompts"
 
 class LabError(RuntimeError):
     """Lệnh lab thất bại hoặc trả về định dạng web không hiểu."""
@@ -35,3 +38,8 @@ def describe(lab_command: tuple[str, ...], project_root: Path) -> dict:
             f"'describe' có format_version {description.get('format_version')!r}, web lab hiểu {DESCRIBE_FORMAT_VERSION}"
         )
     return description
+
+def read_benchmark(path: Path) -> list[str]:
+    """Bộ câu hỏi mặc định của phòng Suy luận trong file benchmark (``benchmark_path`` của ``describe``)."""
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)[BENCHMARK_KEY]
