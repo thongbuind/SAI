@@ -43,7 +43,7 @@ REQUIRED_CAPABILITIES = frozenset({"causal_lm", "kv_cache"})
 TRUNCATED_REASON = "length"
 DISTINCT_N = 2
 MS_PER_SECOND = 1000
-# Decoder chính thức (SAI.generate); cùng GenerationConfig() mặc định là cách sinh của bản phát hành.
+# Decoder chính thức (model.generate_response); cùng GenerationConfig() mặc định là cách sinh của bản phát hành.
 RELEASE_DECODER = "sai"
 
 @dataclass

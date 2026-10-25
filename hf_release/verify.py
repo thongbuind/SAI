@@ -5,7 +5,7 @@ from importlib.metadata import version
 import sys
 import sentencepiece as spm
 import torch
-from SAI.generate import GenerationConfig, generate
+from SAI.generate import GenerationConfig
 from hf_release.artifact import MANIFEST_FILE, SCHEMA_VERSION, sha256_file, validate_artifact, write_json
 from hf_release.checkpoint import load_hf_folder
 
@@ -53,8 +53,9 @@ def verify_export(export_dir) -> dict:
     sentencepiece = spm.SentencePieceProcessor(model_file=str(export_dir / "tokenizer.model"))
     token_ids = tokenizer.encode(SAMPLE_TEXT, add_special_tokens=False)
     config = GenerationConfig(strategy="greedy", max_new_tokens=2, no_repeat_ngram_size=0)
-    native = generate(reference, "xin chào", sentencepiece, config=config, return_result=True)
-    adapted = hf_model.generate_response("xin chào", tokenizer, config=config, return_result=True)
+    messages = [{"role": "user", "content": "xin chào"}]
+    native = reference.generate_response(tokenizer=sentencepiece, messages=messages, config=config, return_result=True)
+    adapted = hf_model.generate_response(tokenizer=tokenizer, messages=messages, config=config, return_result=True)
     checks = {
         "state_dict_keys_match": set(hf_model.model.state_dict()) == set(reference.state_dict()),
         "weights_tied": hf_model.get_output_embeddings().weight.data_ptr() == hf_model.get_input_embeddings().weight.data_ptr(),

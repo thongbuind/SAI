@@ -1,11 +1,12 @@
 """Adapter Transformers chứa model SAI; thuật toán và KV tensor thuộc về lõi SAI."""
 
+from typing import Any
 import torch
 import torch.nn as nn
 from transformers import DynamicCache, GenerationMixin, PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from .configuration_SAI import SAIConfig
-from .generate import GenerationResult, generate as _sai_generate
+from .generate import GenerationConfig, GenerationResult, TokenConstraint
 from .modeling import SAIConfig as CoreConfig, SAIModel
 from .rope import RotaryPositionalEmbedding
 # Transformers chép các phụ thuộc trực tiếp vào cache khi tải remote code từ local.
@@ -101,10 +102,19 @@ class SAIForCausalLM(PreTrainedModel, GenerationMixin):
         result = CausalLMOutputWithPast(loss=loss, logits=logits, past_key_values=cache)
         return result if return_dict else result.to_tuple()
 
-    def generate_response(self, user_input=None, tokenizer=None, **kwargs) -> str | GenerationResult:
-        """Hội thoại riêng của SAI; generate() giữ nguyên hợp đồng Transformers."""
+    def generate_response(
+        self, user_input: str | None = None, tokenizer: Any = None, *,
+        messages: list[dict[str, str]] | None = None, system: str | None = None,
+        instruction: str | None = None, history: list[dict[str, str]] | None = None,
+        config: GenerationConfig | None = None, constraint: TokenConstraint | None = None,
+        return_result: bool = False,
+    ) -> str | GenerationResult:
+        """Cùng giao diện hội thoại với lõi SAI; ``generate()`` nhận tensor theo Transformers."""
         if tokenizer is None:
             raise ValueError("Cần truyền tokenizer")
         self._ensure_runtime_buffers(self.device)
-        sentencepiece = getattr(tokenizer, "sp_model", tokenizer)
-        return _sai_generate(self.model, user_input, sentencepiece, **kwargs)
+        return self.model.generate_response(
+            user_input=user_input, tokenizer=tokenizer, messages=messages,
+            system=system, instruction=instruction, history=history, config=config,
+            constraint=constraint, return_result=return_result,
+        )

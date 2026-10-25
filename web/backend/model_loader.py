@@ -40,7 +40,9 @@ class LoadedModel:
     tokenizer: spm.SentencePieceProcessor
 
     def generate(self, message: str) -> GenerationResult:
-        return self.model.generate_response(message, self.tokenizer, return_result=True)
+        return self.model.generate_response(
+            tokenizer=self.tokenizer, messages=[{"role": "user", "content": message}], return_result=True,
+        )
 
 def hub_repo_id(name: str) -> str:
     return f"{HUB_OWNER}/{name}"

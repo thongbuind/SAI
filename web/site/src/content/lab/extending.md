@@ -19,7 +19,7 @@ Mỗi phòng ban sở hữu một hoặc vài registry: bảng tra từ tên san
 | `OBJECTIVES` | Objective | Hàm loss |
 | `LR_SCHEDULES` | Vận hành | Lịch learning rate |
 | `RECIPES` | Phương pháp huấn luyện | Phương pháp huấn luyện một stage |
-| `DECODERS` | Suy luận | Cách giải mã cho lệnh `infer` (`sai` là `SAI.generate` chính thức) |
+| `DECODERS` | Suy luận | Cách giải mã cho lệnh `infer` (`sai` gọi `model.generate_response` chính thức) |
 
 ## Bốn cấp độ thay đổi kiến trúc
 

@@ -1,11 +1,12 @@
 from dataclasses import dataclass
+from typing import Any
 import torch
 import torch.nn as nn
 from .block import DecoderBlock
-from .generate import generate
+from .generate import GenerationConfig, GenerationResult, TokenConstraint, generate
 from .rope import RotaryPositionalEmbedding
 
-VERSION = "dev3.0.1"
+VERSION = "dev3.0.2"
 
 @dataclass
 class SAIConfig:
@@ -177,5 +178,23 @@ class SAIModel(nn.Module):
                 x = block.forward_with_cache(x, kv, cache_len, cos, sin, attn_mask=attn_mask)
         return self.lm_head(self.norm(x))[:, 0, :]
 
-    def generate_response(self, user_input, tokenizer, **kwargs):
-        return generate(self, user_input, tokenizer, **kwargs)
+    def generate_response(
+        self, user_input: str | None = None, tokenizer: Any = None, *,
+        messages: list[dict[str, str]] | None = None, system: str | None = None,
+        instruction: str | None = None, history: list[dict[str, str]] | None = None,
+        config: GenerationConfig | None = None, constraint: TokenConstraint | None = None,
+        return_result: bool = False,
+    ) -> str | GenerationResult:
+        """Sinh hội thoại qua ``tokenizer=...`` và ``messages=...``.
+
+        Cách truyền chuỗi qua ``user_input`` cùng ``system``/``instruction`` và ``history``
+        vẫn được hỗ trợ; không trộn chúng với ``messages``. Mặc định trả chuỗi;
+        ``return_result=True`` trả thêm token và thông tin kết thúc.
+        Tokenizer có thể là SentencePiece hoặc adapter HF chứa ``sp_model``.
+        """
+        sentencepiece = getattr(tokenizer, "sp_model", tokenizer)
+        return generate(
+            self, user_input=user_input, tokenizer=sentencepiece, messages=messages,
+            system=system, instruction=instruction, history=history, config=config,
+            constraint=constraint, return_result=return_result,
+        )

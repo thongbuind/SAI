@@ -48,7 +48,7 @@ COMPONENT_VERSIONS = {
     "generate": GENERATE_VERSION,
     "tokenizer": TOKENIZER_VERSION,
 }
-MODEL_VERSION = "dev3.0.1"
+MODEL_VERSION = "dev3.0.2"
 
 def validate_versions() -> None:
     """Kiểm tra quan hệ giữa phiên bản phát hành và các thành phần."""

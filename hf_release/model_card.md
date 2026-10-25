@@ -95,8 +95,12 @@ answer = model.generate_response(
 print(answer)
 ```
 
-`generate_response()` dùng thuật toán hội thoại của SAI. `generate()` nhận tensor token ID
-và trả về token ID theo giao diện Transformers:
+`model.generate_response(tokenizer=..., messages=...)` là cách gọi hội thoại thống nhất của
+model lõi và adapter HF, mặc định trả chuỗi; thêm `return_result=True` để nhận token và thông tin
+kết thúc. Cách truyền chuỗi qua `user_input` vẫn được hỗ trợ, nhưng không trộn với `messages`.
+
+`model.generate(input_ids=...)` nhận và trả tensor token ID theo giao diện Transformers;
+không truyền `tokenizer` hoặc `messages` vào hàm này:
 
 ```python
 inputs = tokenizer("xin chào", return_tensors="pt").to(device)

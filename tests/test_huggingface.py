@@ -1,12 +1,17 @@
+import ast
+import dataclasses
+import inspect
 import json
 import os
 import hashlib
+import re
 from types import SimpleNamespace
 import pytest
 import torch
 import yaml
 from safetensors.torch import load_file
 from helpers import TINY_MODEL
+from SAI.generate import GenerationConfig, generate
 from SAI.version import COMPONENT_VERSIONS, MODEL_VERSION
 from foundation_lab.catalog import build_model
 from foundation_lab.core.config import ConfigError
@@ -116,6 +121,125 @@ def test_verify_loads_export_like_a_hub_user(tmp_path, tiny_release):
     report = verify_export(out)
     assert report["passed"], report
     assert (out / "verify.json").exists()
+
+@pytest.mark.parametrize("strategy", ["greedy", "beam", "sample"])
+def test_chat_messages_match_legacy_calls_and_core_algorithm(tmp_path, tiny_release, strategy):
+    """Giao diện mới phải giữ nguyên token, văn bản và thống kê của cách gọi chuỗi cũ."""
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    spec_path, core = tiny_release
+    folder = export_release(spec_path, out_dir=tmp_path / "export")
+    adapted = AutoModelForCausalLM.from_pretrained(folder, trust_remote_code=True).eval()
+    tokenizer = AutoTokenizer.from_pretrained(folder, trust_remote_code=True)
+    core.eval()
+    config = GenerationConfig(strategy=strategy, max_new_tokens=3, beam_size=2, seed=7)
+    system, question = (message["content"] for message in EXAMPLE_MESSAGES)
+    expected = generate(core, question, tokenizer.sp_model, system=system, config=config, return_result=True)
+    core_parameters = inspect.signature(core.generate_response).parameters
+    hf_parameters = inspect.signature(adapted.generate_response).parameters
+    assert [(name, p.kind, p.default) for name, p in core_parameters.items()] == [
+        (name, p.kind, p.default) for name, p in hf_parameters.items()
+    ]
+
+    for model, chat_tokenizer in (
+        (core, tokenizer.sp_model), (core, tokenizer), (adapted, tokenizer.sp_model), (adapted, tokenizer),
+    ):
+        actual = model.generate_response(
+            tokenizer=chat_tokenizer, messages=EXAMPLE_MESSAGES, config=config, return_result=True,
+        )
+        legacy = model.generate_response(question, chat_tokenizer, system=system, config=config, return_result=True)
+        assert dataclasses.asdict(actual) == dataclasses.asdict(legacy) == dataclasses.asdict(expected)
+        assert model.generate_response(
+            tokenizer=chat_tokenizer, messages=EXAMPLE_MESSAGES, config=config,
+        ) == expected.text
+
+def test_chat_history_instruction_and_constraint_match_messages(tmp_path, tiny_release):
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    spec_path, core = tiny_release
+    folder = export_release(spec_path, out_dir=tmp_path / "export")
+    adapted = AutoModelForCausalLM.from_pretrained(folder, trust_remote_code=True).eval()
+    tokenizer = AutoTokenizer.from_pretrained(folder, trust_remote_code=True)
+    core.eval()
+    system, question = (message["content"] for message in EXAMPLE_MESSAGES)
+    history = [{"user": "xin chào", "model": "chào bạn"}]
+    messages = [
+        EXAMPLE_MESSAGES[0], {"role": "user", "content": history[0]["user"]},
+        {"role": "model", "content": history[0]["model"]}, EXAMPLE_MESSAGES[1],
+    ]
+    config = GenerationConfig(max_new_tokens=2)
+    eos = tokenizer.sp_model.eos_id()
+    for model in (core, adapted):
+        options = {"tokenizer": tokenizer, "config": config, "constraint": lambda tokens: [eos], "return_result": True}
+        legacy = model.generate_response(question, instruction=system, history=history, **options)
+        actual = model.generate_response(messages=messages, **options)
+        assert dataclasses.asdict(actual) == dataclasses.asdict(legacy)
+        assert actual.token_ids == [eos] and actual.finish_reason == "stop"
+
+def test_chat_interfaces_reject_mixed_inputs_and_unknown_options(tmp_path, tiny_release):
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    spec_path, core = tiny_release
+    folder = export_release(spec_path, out_dir=tmp_path / "export")
+    adapted = AutoModelForCausalLM.from_pretrained(folder, trust_remote_code=True).eval()
+    tokenizer = AutoTokenizer.from_pretrained(folder, trust_remote_code=True)
+    config = GenerationConfig(strategy="greedy", max_new_tokens=2)
+    for model, chat_tokenizer in ((core, tokenizer.sp_model), (adapted, tokenizer)):
+        with pytest.raises(ValueError, match="messages or user_input"):
+            model.generate_response(
+                user_input="xin chào", tokenizer=chat_tokenizer, messages=EXAMPLE_MESSAGES, config=config,
+            )
+        with pytest.raises(ValueError):
+            model.generate_response(messages=EXAMPLE_MESSAGES, config=config)
+        with pytest.raises(TypeError, match="unsupported_option"):
+            model.generate_response(tokenizer=chat_tokenizer, messages=EXAMPLE_MESSAGES, unsupported_option=True)
+
+def test_documented_chat_calls_work_with_core_and_hf(tmp_path, tiny_release):
+    """Chạy biểu thức gọi model thật trong tài liệu để bắt lỗi ví dụ lệch API."""
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    spec_path, core = tiny_release
+    folder = export_release(spec_path, out_dir=tmp_path / "export")
+    adapted = AutoModelForCausalLM.from_pretrained(folder, trust_remote_code=True).eval()
+    tokenizer = AutoTokenizer.from_pretrained(folder, trust_remote_code=True)
+    core.eval()
+    documents = (
+        HF_DIR.parent / "README.md", folder / "README.md",
+        HF_DIR.parent / "web/site/src/pages/index.astro",
+        HF_DIR.parent / "web/site/src/components/try/TryStatic.astro",
+    )
+    config = GenerationConfig(strategy="greedy", max_new_tokens=2)
+    for path in documents:
+        match = re.search(r"model\.generate(?:_response)?\([\s\S]*?\)", path.read_text(encoding="utf-8"))
+        assert match is not None, f"Không tìm thấy ví dụ gọi model trong {path}"
+        expression = ast.parse(match.group(), mode="eval")
+        # Chỉ giới hạn số token cho model tí hon; tên hàm và tham số lấy nguyên từ ví dụ.
+        expression.body.keywords.append(ast.keyword(arg="config", value=ast.Name(id="config", ctx=ast.Load())))
+        code = compile(ast.fix_missing_locations(expression), str(path), "eval")
+        for model, chat_tokenizer in ((core, tokenizer.sp_model), (adapted, tokenizer)):
+            answer = eval(code, {
+                "model": model, "tokenizer": chat_tokenizer, "messages": EXAMPLE_MESSAGES, "config": config,
+            })
+            assert isinstance(answer, str)
+
+@pytest.mark.parametrize("family", ["SAI", "SAI_modular"])
+def test_web_and_lab_chat_match_core_defaults(tmp_path, tiny_release, family):
+    """Web và decoder lab phải giữ đầu ra mặc định khi chuyển sang messages."""
+    from foundation_lab.inference.decoders import sai_decoder
+    from web.backend.model_loader import LoadedModel
+    import sentencepiece as spm
+
+    _, source = tiny_release
+    config = dataclasses.asdict(source.config)
+    config["max_seq_len"] += GenerationConfig().max_new_tokens
+    model = build_model({"family": family, **config}).eval()
+    model.load_state_dict(source.state_dict())
+    tokenizer = spm.SentencePieceProcessor(model_file=str(tmp_path / "tokenizer.model"))
+    question = "xin chào"
+    expected = generate(model, question, tokenizer, return_result=True)
+    web = LoadedModel(model, tokenizer).generate(question)
+    lab = sai_decoder(model, tokenizer, question, GenerationConfig())
+    assert dataclasses.asdict(web) == dataclasses.asdict(lab) == dataclasses.asdict(expected)
 
 def test_push_plan_removes_stale_hub_files():
     upload, delete = plan_file_changes(

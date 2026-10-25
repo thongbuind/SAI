@@ -51,7 +51,7 @@ Loss được chia thành từng phần nhỏ để giảm lượng bộ nhớ c
 
 Prompt của người dùng được đóng gói theo chat template của tokenizer, sau đó thêm prefix cho vai trò `model`. Bước **prefill** xử lý toàn bộ prompt một lần và lưu key/value của từng decoder block. Các bước sau chỉ tính token mới và nối key/value vào cache, thay vì chạy lại toàn bộ chuỗi.
 
-Mặc định, mô hình sinh tối đa 200 token bằng beam search với 5 beam, repetition penalty `1.2` và no-repeat 3-gram. Quá trình sinh dừng khi gặp `[EOS]`, `<|im_end|>`, đạt giới hạn context hoặc thoả điều kiện dừng sớm.
+Cấu hình mặc định lấy từ `GenerationConfig` trong [`SAI/generate.py`](SAI/generate.py). Quá trình sinh dừng khi gặp `[EOS]`, `<|im_end|>`, đạt giới hạn context hoặc thoả điều kiện dừng sớm.
 
 ## Tải mô hình và chạy thử
 
@@ -94,7 +94,7 @@ messages = [
     },
 ]
 
-answer = model.generate(
+answer = model.generate_response(
     tokenizer=tokenizer,
     messages=messages,
 )
@@ -102,3 +102,11 @@ print(answer)
 ```
 
 Trong lần chạy đầu tiên, Transformers sẽ tự tải model, tokenizer và config; các lần sau sẽ sử dụng bộ nhớ đệm cục bộ.
+
+`model.generate_response(tokenizer=..., messages=...)` là cách gọi hội thoại thống nhất cho model
+lõi `SAIModel` và model tải bằng Transformers. Mặc định trả chuỗi; thêm `return_result=True`
+để nhận token và thông tin kết thúc. Cách truyền chuỗi qua `user_input` vẫn được hỗ trợ,
+nhưng không trộn với `messages`.
+
+Với model Transformers, `model.generate(input_ids=...)` là giao diện sinh token ID của thư viện;
+không truyền `tokenizer` hoặc `messages` vào hàm này.

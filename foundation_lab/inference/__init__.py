@@ -1,6 +1,6 @@
 """Phòng Suy luận: nạp checkpoint để sinh câu trả lời, so sánh các cách giải mã về tốc độ và đầu ra.
 
-Cách giải mã đăng ký vào ``DECODERS`` (``sai`` là ``SAI.generate`` chính thức). Lệnh
+Cách giải mã đăng ký vào ``DECODERS`` (``sai`` gọi ``model.generate_response`` chính thức). Lệnh
 ``python -m foundation_lab infer <spec>`` chạy một bộ câu hỏi trên nhiều biến thể (decoder + GenerationConfig)
 và ghi kết quả vào ``runs/infer/<run_id>/``; xem ``foundation_lab.inference.bench``.
 """

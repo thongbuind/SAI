@@ -108,6 +108,6 @@ variants:
     generation: {strategy: greedy}
 ```
 
-Mỗi biến thể gồm `name`, `decoder` (registry `DECODERS`, mặc định `sai` là `SAI.generate` chính thức) và `generation` (tham số sinh). Spec phải có ít nhất một biến thể dùng decoder `sai` với `generation` để mặc định, để mọi biến thể khác luôn được so với cách sinh người dùng bản phát hành đang nhận; thiếu thì lệnh báo lỗi config trước khi nạp model. Truyền `-` thay cho đường dẫn để đọc spec từ stdin. Kết quả ghi vào `runs/infer/<thời gian>/`, kèm thước đo cho từng biến thể: độ trễ trung bình, token/giây, số token sinh trung bình, tỉ lệ bị cắt, `distinct_2`.
+Mỗi biến thể gồm `name`, `decoder` (registry `DECODERS`, mặc định `sai` gọi `model.generate_response` chính thức) và `generation` (tham số sinh). Spec phải có ít nhất một biến thể dùng decoder `sai` với `generation` để mặc định, để mọi biến thể khác luôn được so với cách sinh người dùng bản phát hành đang nhận; thiếu thì lệnh báo lỗi config trước khi nạp model. Truyền `-` thay cho đường dẫn để đọc spec từ stdin. Kết quả ghi vào `runs/infer/<thời gian>/`, kèm thước đo cho từng biến thể: độ trễ trung bình, token/giây, số token sinh trung bình, tỉ lệ bị cắt, `distinct_2`.
 
 Trên web, Phòng làm việc › Suy luận chạy đúng lệnh này bằng nút bấm.
