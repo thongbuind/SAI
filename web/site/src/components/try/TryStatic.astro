@@ -14,12 +14,12 @@ import { GITHUB_URL } from "../../lib/site";
 import models from "../../data/models.json";
 import generation from "../../data/generation.json";
 
-const DEFAULT_MODEL = "SAI_100M";
+const DEFAULT_MODEL = "SAI_375M";
 const selected = models.find(model => model.name === DEFAULT_MODEL)!;
 const MODEL_NOTES = {
   SAI_35M: { tag: "nhanh nhất", text: "Thử nhanh, chạy được trên CPU." },
-  SAI_100M: { tag: "khuyến nghị", text: "Cân bằng giữa chất lượng và tốc độ." },
-  SAI_375M: { tag: "mạnh nhất", text: "Chất lượng tốt nhất, nên có GPU." },
+  SAI_100M: { tag: "cân bằng", text: "Cân bằng giữa chất lượng và tốc độ." },
+  SAI_375M: { tag: "khuyến nghị", text: "Chất lượng tốt nhất, nên có GPU." },
 };
 // Ý nghĩa từng tham số sinh, viết theo cách SAI/generate.py dùng chúng.
 const GENERATION_MEANING: Record<string, string> = {
