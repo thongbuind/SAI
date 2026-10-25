@@ -10,7 +10,7 @@ import re
 import pytest
 import torch
 import yaml
-from helpers import TINY_MODEL
+from helpers import INFER_MODEL
 from SAI.generate import GenerationConfig
 from foundation_lab.catalog import build_model
 from foundation_lab.cli import main
@@ -24,8 +24,7 @@ from foundation_lab.state.checkpoint import weights_by_model
 from foundation_lab.state.events import EventLog
 from foundation_lab.state.results import read_result
 
-OFFICIAL_VOCAB = 10000
-MODEL = {**TINY_MODEL, "vocab_size": OFFICIAL_VOCAB}
+MODEL = INFER_MODEL
 
 @pytest.fixture
 def checkpoint(tmp_path):
@@ -41,8 +40,8 @@ def make_spec(weights, **changes) -> dict:
         "device": "cpu",
         "prompts": ["xin chào", "thủ đô của việt nam là gì?"],
         "variants": [
+            {"name": "default"},
             {"name": "greedy", "generation": {"strategy": "greedy", "max_new_tokens": 4}},
-            {"name": "beam2", "generation": {"strategy": "beam", "beam_size": 2, "max_new_tokens": 4}},
         ],
     }
     return {**spec, **changes}
@@ -60,7 +59,8 @@ def run_cli(tmp_path, spec: dict, run_id="r0"):
     ({"variants": [{"name": "a"}, {"name": "a"}]}, "trùng"),
     ({"variants": [{"name": "a", "decoder": "khong_co"}]}, "decoder"),
     ({"variants": [{"name": "a", "generation": {"top_pp": 0.9}}]}, "variants[0].generation"),
-    ({"variants": [{"name": "a", "generation": {"top_p": 2.0}}]}, "variants[0].generation: top_p"),
+    ({"variants": [{"name": "a", "generation": {"top_p": 2.0}}, {"name": "default"}]}, "variants[0].generation: top_p"),
+    ({"variants": [{"name": "a", "generation": {"strategy": "beam", "beam_size": 5}}]}, "cấu hình mặc định"),
     ({"checkpoint": "model/khong_co.pt"}, "checkpoint"),
     ({"device": "tpu"}, "device"),
 ])
@@ -79,10 +79,13 @@ def test_infer_writes_run_dir_with_events_and_result(tmp_path, checkpoint):
     assert result["command"] == "infer" and result["format_version"] == 1
     # Mỗi câu hỏi chạy trên mọi biến thể rồi mới sang câu sau.
     assert [(r["prompt_index"], r["variant"]) for r in result["records"]] == [
-        (0, "greedy"), (0, "beam2"), (1, "greedy"), (1, "beam2"),
+        (0, "default"), (0, "greedy"), (1, "default"), (1, "greedy"),
     ]
-    assert all(0 < r["completion_tokens"] <= 4 and r["latency_ms"] > 0 for r in result["records"])
-    assert {m["group"] for m in result["metrics"]} == {"greedy", "beam2"}
+    assert all(r["completion_tokens"] > 0 and r["latency_ms"] > 0 for r in result["records"])
+    assert all(r["completion_tokens"] <= 4 for r in result["records"] if r["variant"] == "greedy")
+    assert {m["group"] for m in result["metrics"]} == {"default", "greedy"}
+    # Biến thể mốc là biến thể sinh đúng như bản phát hành.
+    assert result["baseline"] == "default"
     assert set(result["timings"]) == {"load_ms", "total_ms"}
 
     events = EventLog.read(run_path / "events.jsonl")
@@ -167,8 +170,9 @@ def test_benchmark_is_shared_by_example_spec():
     """benchmark.yaml là spec một phần (chỉ có prompts) mà spec khác "extends"; web ghi đè nó bằng YAML cùng dạng."""
     benchmark = yaml.safe_load(INFERENCE_BENCHMARK.read_text(encoding="utf-8"))
     assert list(benchmark) == ["prompts"] and benchmark["prompts"] and all(isinstance(p, str) for p in benchmark["prompts"])
-    example = resolve_inference(load_with_extends(LAB_DIR / "inference" / "configs" / "compare_35M.yaml"))
+    example = resolve_inference(load_with_extends(LAB_DIR / "inference" / "configs" / "compare_375M.yaml"))
     assert example["prompts"] == benchmark["prompts"]
+    from_dict(InferenceSpec, example)  # spec mẫu qua được kiểm tra schema, gồm biến thể mặc định
 
 def test_weights_are_grouped_by_the_model_that_loads_them(tmp_path):
     small = {"family": "SAI", "d_model": 8}

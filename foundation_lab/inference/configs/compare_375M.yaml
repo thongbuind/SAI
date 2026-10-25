@@ -1,0 +1,13 @@
+# So sánh cấu hình sinh mặc định của bản phát hành với greedy và sampling trên SAI 375M (checkpoint SFT1),
+# trên bộ câu hỏi benchmark.
+#   python -m foundation_lab infer foundation_lab/inference/configs/compare_375M.yaml
+extends: benchmark.yaml
+model: SAI_375M
+checkpoint: model/sft1_375M.pt
+device: auto
+variants:
+  - name: default
+  - name: greedy
+    generation: {strategy: greedy}
+  - name: sample
+    generation: {strategy: sample, temperature: 0.8, top_p: 0.95, seed: 0}

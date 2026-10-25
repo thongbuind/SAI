@@ -1,8 +1,14 @@
-"""Danh mục toàn lab: import mọi phòng để các implementation tự đăng ký, gom registry về một chỗ."""
+"""Danh mục toàn lab: import mọi phòng để các implementation tự đăng ký, gom registry về một chỗ.
+
+``TASKS`` (lệnh tác vụ, xem ``core/tasks.py``) không nằm trong ``DEPARTMENTS``: đó là lệnh của dòng lệnh, không
+phải implementation chọn qua config; mỗi tác vụ tự ghi phòng của nó.
+"""
 
 from foundation_lab.architecture import ATTENTION_KERNELS, ATTENTIONS, FFNS, MODELS, NORMS, build_model, resolve_model_config
+from foundation_lab.core.tasks import TASKS
 from foundation_lab.data import DATA_SOURCES, build_data_source, resolve_data_config
 from foundation_lab.engine.optim import LR_SCHEDULES
+from foundation_lab.eval import compare  # noqa: F401  (đăng ký tác vụ compare-kernel, compare-objective)
 from foundation_lab.inference import DECODERS
 from foundation_lab.objectives import OBJECTIVES
 from foundation_lab.recipes import RECIPES
@@ -21,6 +27,6 @@ DEPARTMENTS = {
 
 __all__ = [
     "ATTENTION_KERNELS", "ATTENTIONS", "DATA_SOURCES", "DECODERS", "DEPARTMENTS", "ENCODERS", "FFNS", "LR_SCHEDULES",
-    "MODELS", "NORMS", "OBJECTIVES", "RECIPES",
+    "MODELS", "NORMS", "OBJECTIVES", "RECIPES", "TASKS",
     "build_data_source", "build_model", "resolve_data_config", "resolve_model_config",
 ]

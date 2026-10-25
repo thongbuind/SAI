@@ -4,6 +4,8 @@
 - ``metrics``: số đo có tên, gom theo ``group`` (vd. tên biến thể), kèm đơn vị và chiều tốt hơn.
 - ``records``: các bản ghi chi tiết (vd. mỗi câu hỏi × biến thể một bản ghi).
 - ``timings``: thời gian các pha, mili giây.
+- ``baseline``: ``group`` dùng cấu hình mặc định hiện tại làm mốc, khi các group là biến thể so với nhau
+  (vd. biến thể ``default`` của ``infer``); None khi mốc nằm trong từng bản ghi (vd. kernel mốc của mỗi model).
 
 Đổi ý nghĩa hoặc xoá khoá thì tăng ``RESULT_FORMAT_VERSION``.
 """
@@ -30,6 +32,7 @@ class RunResult:
     metrics: list[Metric]
     records: list[dict]
     timings: dict[str, float]
+    baseline: str | None = None
     format_version: int = RESULT_FORMAT_VERSION
 
 def write_result(path, result: RunResult):

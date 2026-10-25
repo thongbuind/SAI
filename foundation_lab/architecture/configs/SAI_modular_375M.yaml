@@ -1,0 +1,9 @@
+# Bản lắp ghép của SAI 375M để thí nghiệm kiến trúc. Với các lựa chọn mặc định dưới đây,
+# model giống hệt SAI_375M (cùng phép tính, cùng state_dict). Đổi một dòng để thử biến thể,
+# ví dụ attention_kernel: eager.
+extends: ../../../config/models/SAI_375M.yaml
+family: SAI_modular
+attention: gqa
+attention_kernel: sdpa
+ffn: swiglu
+norm: rmsnorm

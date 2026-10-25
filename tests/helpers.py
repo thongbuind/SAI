@@ -3,9 +3,13 @@
 import json
 from pathlib import Path
 import numpy as np
+from SAI.generate import GenerationConfig
 
 BOS, EOS = 1, 2
 VOCAB = 64
+OFFICIAL_VOCAB = 10000
+# Số token dành cho prompt, ngoài max_new_tokens, trong cửa sổ của model tí hon chạy lệnh infer.
+INFER_PROMPT_ROOM = 256
 
 TINY_MODEL = {
     "family": "SAI",
@@ -17,6 +21,14 @@ TINY_MODEL = {
     "ff_dim": 64,
     "max_seq_len": 256,
     "dropout": 0.0,
+}
+
+# Model tí hon cho lệnh infer: vocab bằng tokenizer chính thức để giải mã thật bằng SAI.generate, cửa sổ đủ cho
+# max_new_tokens mặc định cộng prompt vì spec infer luôn phải có biến thể GenerationConfig mặc định.
+INFER_MODEL = {
+    **TINY_MODEL,
+    "vocab_size": OFFICIAL_VOCAB,
+    "max_seq_len": GenerationConfig().max_new_tokens + INFER_PROMPT_ROOM,
 }
 
 def make_lm_samples(n, rng, min_len=3, max_len=40):

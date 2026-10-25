@@ -1,5 +1,5 @@
 # Bộ câu hỏi mặc định của phòng Suy luận. Spec khác dùng lại bằng "extends: benchmark.yaml".
-# Bàn thử nghiệm (web lab) mở sẵn bộ này và ghi đè file khi bấm "Lưu vào benchmark"; các dòng comment đầu file được giữ.
+# Phòng làm việc (web lab) mở sẵn bộ này và ghi đè file khi bấm "Lưu vào benchmark"; các dòng comment đầu file được giữ.
 prompts:
 - xin chào, bạn là ai?
 - thủ đô của việt nam là gì?
@@ -9,3 +9,5 @@ prompts:
 - hieuthuhai sinh năm mấy
 - kiến trúc transformer
 - viết một câu ngắn về mùa thu hà nội.
+- hãy kể 1 câu chuyện cười
+- huý danh của hoàng đế lý thánh tông là gì

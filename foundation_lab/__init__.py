@@ -21,4 +21,4 @@ rồi chọn nó qua config, không sửa code của phòng khác.
 phiên bản phát hành trong ``SAI.version``. lab1.0.0 ứng với dev3.0.0.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"

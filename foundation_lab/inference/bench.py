@@ -7,22 +7,27 @@ Spec (YAML/JSON)::
     device: auto
     prompts: ["xin chào", "thủ đô của việt nam là gì?"]
     variants:
-      - name: beam5
-        generation: {strategy: beam, beam_size: 5}
+      - name: default                   # bắt buộc: decoder "sai" + GenerationConfig mặc định
       - name: sample
         generation: {strategy: sample, temperature: 0.8, seed: 0}
 
+Spec phải có một biến thể dùng đúng cách sinh của bản phát hành (decoder ``sai``, ``generation`` để mặc định)
+để mọi biến thể thử nghiệm luôn được so với hành vi người dùng đang nhận.
+
 Mỗi câu hỏi chạy lần lượt trên mọi biến thể rồi mới sang câu tiếp theo, nên kết quả từng câu so sánh được
 ngay khi đang chạy. Kết quả ghi vào thư mục run: ``events.jsonl`` (dần dần) và ``result.json`` (khi xong).
+``infer`` là một tác vụ theo hợp đồng chung trong ``foundation_lab.core.tasks``.
 """
 
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 from SAI.generate import GenerationConfig, validate_generation_config
 from foundation_lab.architecture import resolve_model_config
 from foundation_lab.core.config import ConfigError, apply_overrides, from_dict
 from foundation_lab.core.experiment import resolve_config_ref
+from foundation_lab.core.tasks import TASKS, Task
 from foundation_lab.engine.runtime import select_device
 from foundation_lab.eval.text import distinct_n
 from foundation_lab.inference.loading import load_for_inference
@@ -38,16 +43,22 @@ REQUIRED_CAPABILITIES = frozenset({"causal_lm", "kv_cache"})
 TRUNCATED_REASON = "length"
 DISTINCT_N = 2
 MS_PER_SECOND = 1000
+# Decoder chính thức (SAI.generate); cùng GenerationConfig() mặc định là cách sinh của bản phát hành.
+RELEASE_DECODER = "sai"
 
 @dataclass
 class VariantSpec:
     name: str
-    decoder: str = "sai"
+    decoder: str = RELEASE_DECODER
     generation: GenerationConfig = field(default_factory=GenerationConfig)
 
     def __post_init__(self):
         if self.decoder not in DECODERS:
             raise ConfigError(f"decoder '{self.decoder}' không tồn tại; các lựa chọn: {DECODERS.names()}")
+
+def is_release_variant(variant: VariantSpec) -> bool:
+    """Biến thể sinh đúng như bản phát hành: decoder chính thức với GenerationConfig mặc định."""
+    return variant.decoder == RELEASE_DECODER and variant.generation == GenerationConfig()
 
 @dataclass
 class InferenceSpec:
@@ -66,6 +77,11 @@ class InferenceSpec:
         names = [variant.name for variant in self.variants]
         if len(set(names)) != len(names):
             raise ConfigError(f"variants: tên biến thể bị trùng {names}")
+        if not any(is_release_variant(variant) for variant in self.variants):
+            raise ConfigError(
+                f"variants: cần một biến thể cấu hình mặc định (decoder '{RELEASE_DECODER}', không ghi generation), "
+                "vd. {name: default}"
+            )
 
 def resolve_inference(data: dict, overrides=None) -> dict:
     """Thay ``model: <tên>`` bằng nội dung config rồi áp override ``--set``; kết quả tự đủ, ghi được vào run."""
@@ -138,7 +154,21 @@ def run_inference(spec: InferenceSpec, run_dir, events: EventLog) -> RunResult:
         metrics=variant_metrics(spec.variants, records),
         records=records,
         timings={"load_ms": load_ms, "total_ms": (time.perf_counter() - started) * MS_PER_SECOND},
+        baseline=next(variant.name for variant in spec.variants if is_release_variant(variant)),
     )
     write_result(run_dir.result_path, result)
     events.emit("finished")
     return result
+
+def inference_inputs(spec: InferenceSpec) -> dict[str, list[Path]]:
+    return {"checkpoint": [resolve_project_path(spec.checkpoint)]}
+
+TASKS.register(COMMAND)(Task(
+    department="inference",
+    spec_cls=InferenceSpec,
+    resolve=resolve_inference,
+    validate=validate_inference,
+    run=run_inference,
+    inputs=inference_inputs,
+    help="so sánh các biến thể giải mã trên một checkpoint, ghi vào runs/infer/",
+))
