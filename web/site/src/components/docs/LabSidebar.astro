@@ -1,5 +1,6 @@
 ---
-// Sidebar Lab: nhóm tài liệu theo group, bắt đầu từ Quickstart. Bản server có thêm nhóm "Bàn thử nghiệm".
+// Sidebar Lab: nhóm tài liệu theo group (Tổng quan, Bắt đầu). Bản server có thêm nhóm "Phòng làm việc", trong đó phòng
+// chưa có lệnh (trang chờ) mang nhãn "sắp có".
 import { LAB_GROUPS } from "../../content.config";
 import { url } from "../../lib/paths";
 import { deployTarget } from "../../lib/target";
@@ -8,7 +9,7 @@ import type { LabDoc } from "../../lib/docs";
 
 interface Props {
   docs: LabDoc[];
-  // id tài liệu, hoặc "workbench/<phòng>" cho trang bàn thử nghiệm.
+  // id tài liệu, hoặc "workbench/<phòng>" cho trang phòng làm việc.
   currentId?: string;
 }
 const { docs, currentId } = Astro.props;
@@ -25,9 +26,9 @@ const workbench = deployTarget() === "server" ? WORKBENCH_PAGES : [];
   ))}
   {workbench.length > 0 && (
     <div class="group">
-      <p class="t-overline">Bàn làm việc</p>
+      <p class="t-overline">Phòng làm việc</p>
       {workbench.map(page => (
-        <a class="item" href={url(`/lab/workbench/${page.department}/`)} aria-current={`workbench/${page.department}` === currentId ? "page" : undefined}>{page.title}</a>
+        <a class="item" href={url(`/lab/workbench/${page.department}/`)} aria-current={`workbench/${page.department}` === currentId ? "page" : undefined}>{page.title}{"planned" in page && <span class="soon">sắp có</span>}</a>
       ))}
     </div>
   )}
@@ -37,8 +38,22 @@ const workbench = deployTarget() === "server" ? WORKBENCH_PAGES : [];
   .sidebar { display: flex; flex-direction: column; gap: var(--space-6); }
   .group { display: flex; flex-direction: column; gap: 2px; }
   .group .t-overline { margin: 0 0 var(--space-2); padding-left: var(--space-3); }
-  .item { display: flex; align-items: center; gap: var(--space-2); min-height: 32px; padding: 0 var(--space-3); border-radius: var(--radius-sm); color: var(--text-secondary); text-decoration: none; font: 500 13px/1.3 var(--font-sans); }
+  .item { display: flex; align-items: center; gap: var(--space-2); min-height: 32px; padding: 0 var(--space-3); border-radius: var(--radius-item); color: var(--text-secondary); text-decoration: none; font: 500 13px/1.3 var(--font-sans); }
   .item:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
   .item[aria-current="page"] { background: var(--fill-accent-muted); color: var(--text-primary); }
   .item[aria-current="page"]::before { content: ""; width: 2px; height: 16px; border-radius: 1px; background: var(--fill-accent-solid); }
+  .soon { flex: none; margin-left: auto; font: 500 11px/1 var(--font-sans); color: var(--text-tertiary); }
 </style>
+
+<script>
+  // Trang Lab chuyển trang bằng ClientRouter (BaseLayout): cột sidebar (data-lab-side, trong DocLayout và WorkbenchPage)
+  // được thay bằng cột của trang mới, nên mang vị trí cuộn của cột cũ sang.
+  let sidebarScrollTop = 0;
+  document.addEventListener("astro:before-swap", () => {
+    sidebarScrollTop = document.querySelector("[data-lab-side]")?.scrollTop ?? 0;
+  });
+  document.addEventListener("astro:after-swap", () => {
+    const side = document.querySelector("[data-lab-side]");
+    if (side) side.scrollTop = sidebarScrollTop;
+  });
+</script>

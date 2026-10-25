@@ -1,4 +1,4 @@
-// Gọi API JSON cùng origin với site (web/backend: chat, bàn thử nghiệm). Mọi lỗi là RequestError có thông báo
+// Gọi API JSON cùng origin với site (web/backend: chat, phòng làm việc). Mọi lỗi là RequestError có thông báo
 // đọc được cho người dùng: ApiError (máy chủ trả mã lỗi) hoặc NetworkError (không tới được máy chủ).
 import { url } from "./paths";
 

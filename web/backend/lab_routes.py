@@ -1,8 +1,9 @@
-"""API của bàn thử nghiệm, gắn dưới ``/api/lab``; chỉ có khi chạy ``python -m web --lab``.
+"""API của phòng làm việc, gắn dưới ``/api/lab``; chỉ có khi chạy ``python -m web --lab``.
 
 - ``GET  /describe``: output ``describe`` của lab (đọc một lần lúc server khởi động).
 - ``GET  /jobs?command=infer``: lịch sử run của một lệnh, mới nhất trước.
-- ``POST /jobs``: ``{command, spec}`` → 202 ``{command, run_id}``; job vào hàng đợi.
+- ``POST /jobs``: ``{command, spec}`` → 202 ``{command, run_id}``; spec được kiểm theo lệnh (``SPEC_CHECKS``) rồi
+  job vào hàng đợi. Lệnh lab chưa có hàm kiểm tra ở đây thì web không chạy.
 - ``GET  /jobs/{command}/{run_id}``: config, trạng thái, sự kiện, kết quả, stderr của job.
 - ``GET  /jobs/{command}/{run_id}/events``: SSE, đọc dần ``events.jsonl``; kết thúc bằng sự kiện ``end``.
 - ``POST /jobs/{command}/{run_id}/cancel``: huỷ job đang chờ hoặc đang chạy.
@@ -28,7 +29,7 @@ from web.backend.lab_jobs import ACTIVE_STATES, JobRunner, QueueFull
 from web.backend.lab_runs import EVENTS_FILE, TERMINAL_EVENTS, list_run_ids, read_events, run_detail, run_state, run_summary
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
-LAB_DISABLED = "Server đang chạy không có bàn thử nghiệm. Trên máy có foundation_lab, chạy: python -m web --lab"
+LAB_DISABLED = "Server đang chạy không có phòng làm việc. Trên máy có foundation_lab, chạy: python -m web --lab"
 
 @dataclass
 class Lab:
@@ -44,7 +45,7 @@ def host_name(host_header: str) -> str:
 
 def require_local_host(request: Request):
     if host_name(request.headers.get("host", "")) not in LOCAL_HOSTS:
-        raise HTTPException(403, "Bàn thử nghiệm chỉ nhận truy cập từ localhost")
+        raise HTTPException(403, "Phòng làm việc chỉ nhận truy cập từ localhost")
 
 router = APIRouter(dependencies=[Depends(require_local_host)])
 disabled_router = APIRouter()
@@ -56,10 +57,35 @@ def lab_disabled(path: str):
 # run_id thành một phần đường dẫn trên đĩa: chỉ nhận ký tự an toàn, chặn "..", "/".
 RunId = Annotated[str, Path(pattern=r"^[A-Za-z0-9_\-]+$")]
 EVENTS_POLL_SEC = 0.25
-# Cặp khoá (model, checkpoint) trong spec phải là một cặp lab đã liệt kê trong "checkpoints" của describe:
-# web không chuyển đường dẫn tuỳ ý từ trình duyệt xuống lệnh lab, và không nạp trọng số vào model khác cỡ.
-MODEL_WEIGHT_FIELDS = {"infer": ("model", "checkpoint")}
 BENCHMARK_KEY = "prompts"
+
+# Kiểm tra spec theo lệnh trước khi chạy: mọi tên model, trọng số... phải nằm trong danh sách của describe, để web
+# không chuyển đường dẫn tuỳ ý từ trình duyệt xuống lệnh lab. Lab vẫn kiểm tra lại toàn bộ spec khi chạy.
+
+def check_infer_spec(spec: dict, description: dict):
+    """(model, checkpoint) phải là một cặp trong "checkpoints": không nạp trọng số vào model khác cỡ."""
+    checkpoints = description["checkpoints"]
+    model, checkpoint = spec.get("model"), spec.get("checkpoint")
+    if not isinstance(model, str) or model not in checkpoints:
+        raise HTTPException(400, f"spec.model: '{model}' không có trong 'checkpoints' của lab")
+    if checkpoint not in checkpoints[model]:
+        raise HTTPException(400, f"spec.checkpoint: '{checkpoint}' không phải trọng số của model '{model}'")
+
+def check_kernel_spec(spec: dict, description: dict):
+    """``models`` là danh sách tên trong "models": lab nối tên thành đường dẫn file config."""
+    models = spec.get("models")
+    if not isinstance(models, list) or not all(isinstance(name, str) and name in description["models"] for name in models):
+        raise HTTPException(400, f"spec.models: cần danh sách tên model có trong 'models' của lab, nhận {models!r}")
+
+def check_objective_spec(spec: dict, description: dict):
+    """``experiments`` là danh sách tên trong "experiments": lab nối tên thành đường dẫn file experiment."""
+    experiments = spec.get("experiments")
+    if not isinstance(experiments, list) or not all(
+        isinstance(name, str) and name in description["experiments"] for name in experiments
+    ):
+        raise HTTPException(400, f"spec.experiments: cần danh sách tên experiment có trong 'experiments' của lab, nhận {experiments!r}")
+
+SPEC_CHECKS = {"infer": check_infer_spec, "compare-kernel": check_kernel_spec, "compare-objective": check_objective_spec}
 
 class JobRequest(BaseModel):
     command: str
@@ -105,14 +131,9 @@ def list_jobs(request: Request, command: str):
 @router.post("/jobs", status_code=202)
 def submit_job(request: Request, body: JobRequest):
     _check_command(request, body.command)
-    checkpoints = _lab(request).description["checkpoints"]
-    if body.command in MODEL_WEIGHT_FIELDS:
-        model_key, checkpoint_key = MODEL_WEIGHT_FIELDS[body.command]
-        model, checkpoint = body.spec.get(model_key), body.spec.get(checkpoint_key)
-        if not isinstance(model, str) or model not in checkpoints:
-            raise HTTPException(400, f"spec.{model_key}: '{model}' không có trong 'checkpoints' của lab")
-        if checkpoint not in checkpoints[model]:
-            raise HTTPException(400, f"spec.{checkpoint_key}: '{checkpoint}' không phải trọng số của model '{model}'")
+    if body.command not in SPEC_CHECKS:
+        raise HTTPException(400, f"Web chưa có kiểm tra spec cho lệnh '{body.command}' nên chưa chạy được lệnh này")
+    SPEC_CHECKS[body.command](body.spec, _lab(request).description)
     try:
         job = _runner(request).submit(body.command, body.spec)
     except QueueFull:

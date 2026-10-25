@@ -50,7 +50,7 @@ const size = (bytes: number) => bytes >= 1e9
   .picker { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
   legend { padding: 0; margin-bottom: var(--space-5); }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); }
-  .card { position: relative; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); cursor: pointer; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); transition: border-color var(--duration-base), box-shadow var(--duration-base); }
+  .card { position: relative; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); cursor: pointer; border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); transition: border-color var(--duration-base), box-shadow var(--duration-base); }
   .card:hover { border-color: var(--border-strong); box-shadow: var(--elevation-2); }
   /* Thẻ được chọn: viền 2px; padding bớt 1px để nội dung không xê dịch. */
   .card:has(input:checked) { padding: calc(var(--space-6) - 1px); border: 2px solid var(--border-focus); background: var(--fill-accent-muted); box-shadow: var(--elevation-2); }

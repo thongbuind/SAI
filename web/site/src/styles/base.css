@@ -1,4 +1,6 @@
-/* Nền tảng dùng chung mọi trang: reset, vật liệu kính, text style, khung nội dung. Style riêng của component nằm trong file .astro. */
+/* Nền tảng dùng chung mọi trang: reset, vật liệu kính, text style, khung nội dung, và vài component dùng chung (nút
+   icon, bong bóng chat, hiệu ứng lớp nổi) vì chúng còn được script tạo lúc chạy nên không dùng được style scoped.
+   Style riêng của từng component khác nằm trong file .astro. */
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -50,7 +52,37 @@ button { font: inherit; color: inherit; }
   --astro-code-token-comment: var(--code-muted);
   margin: 0; padding: var(--space-5); overflow-x: auto; font: 400 13px/1.75 var(--font-mono); tab-size: 4;
 }
-code:not(.astro-code code) { font: 400 0.86em/1.4 var(--font-mono); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--fill-accent-muted); color: var(--text-accent); }
+code:not(.astro-code code) { font: 400 0.86em/1.4 var(--font-mono); padding: 2px 6px; border-radius: var(--radius-inline); background: var(--fill-accent-muted); color: var(--text-accent); }
+
+/* ===== Nút icon tròn: ghost (mặc định) cho thanh điều hướng, khối code, menu; control có viền cho nút trong ứng dụng
+   (trang chat), như nút của web dev2. Cỡ: sm 28px, mặc định 32px, lg 38px. ===== */
+.icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; flex: none; padding: 0; border-radius: var(--radius-control); border: 1px solid transparent; background: none; color: var(--text-tertiary); cursor: pointer; text-decoration: none; transition: background-color var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast); }
+.icon-btn:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
+.icon-btn:active { background: var(--fill-accent-active); }
+.icon-btn[aria-pressed="true"] { color: var(--text-accent); }
+.icon-btn-sm { width: 28px; height: 28px; }
+.icon-btn-lg { width: 38px; height: 38px; }
+.icon-btn-control { border-color: var(--control-border); background: var(--control-bg); color: var(--control-color); }
+.icon-btn-control:hover { border-color: var(--control-border-hover); background: var(--control-bg-hover); color: var(--text-primary); }
+
+/* ===== Bong bóng chat: trang chat (script tạo) và khung chat mẫu ở trang chủ dùng chung. Góc phía người nói nhọn. ===== */
+.bubble { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid; box-shadow: var(--bubble-shadow); color: var(--text-primary); font: 400 15px/1.7 var(--font-sans); white-space: pre-wrap; overflow-wrap: anywhere; }
+.bubble-user { border-radius: var(--radius-bubble) var(--radius-bubble) var(--radius-bubble-tail) var(--radius-bubble); background: var(--bubble-user-bg); border-color: var(--bubble-user-border); }
+.bubble-ai { border-radius: var(--radius-bubble-tail) var(--radius-bubble) var(--radius-bubble) var(--radius-bubble); background: var(--bubble-ai-bg); border-color: var(--bubble-ai-border); text-align: justify; }
+.bubble-sm { padding: var(--space-2) var(--space-4); font-size: 13px; line-height: 1.6; }
+/* Tên mô hình đặt trên câu trả lời. */
+.bubble-label { font: 600 11px/1 var(--font-sans); letter-spacing: 0.04em; color: var(--text-label); }
+.chat-avatar { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--gradient-brand); border: 1px solid var(--border-strong); color: var(--text-on-accent); font: 700 10px/1 var(--font-sans); letter-spacing: 0.03em; }
+.typing-dots { display: inline-flex; align-items: center; gap: 4px; }
+.typing-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--fill-accent-solid); animation: typing-bounce 1.2s infinite; }
+.typing-dots i:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+/* ===== Hiệu ứng lớp nổi (dropdown, menu): bật ra từ phía nút mở, như dropUp của web dev2. Mặc định trượt từ dưới lên;
+   lớp nổi mở xuống thì đặt --pop-offset âm. Chạy mỗi lần phần tử chuyển từ hidden sang hiện. ===== */
+.anim-pop-in { animation: pop-in var(--duration-base) var(--easing-spring) both; }
+@keyframes pop-in { from { opacity: 0; translate: 0 var(--pop-offset, 8px); scale: 0.97; } }
 
 /* Section chung của các trang nội dung. */
 .section { padding-block: var(--space-24); border-top: 1px solid var(--border-subtle); }

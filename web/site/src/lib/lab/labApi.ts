@@ -1,4 +1,4 @@
-// Gọi API của bàn thử nghiệm (web/backend/lab_routes.py, /api/lab). Kiểu dữ liệu ở đây là hợp đồng với lab:
+// Gọi API của phòng làm việc (web/backend/lab_routes.py, /api/lab). Kiểu dữ liệu ở đây là hợp đồng với lab:
 // output "python -m foundation_lab describe" và file trong runs/<lệnh>/<run_id>/ (events.jsonl, result.json).
 import { jsonBody, query, requestJson } from "../http";
 import { url } from "../paths";
@@ -24,6 +24,11 @@ export interface Description {
   lab_version: string;
   departments: Record<string, Registry[]>;
   commands: Record<string, { department: string; spec: ObjectSchema }>;
+  models: string[];
+  // Tên model → họ mô hình (vd. SAI, SAI_modular).
+  model_families: Record<string, string>;
+  // Experiment chạy được → các stage đang bật, theo thứ tự pipeline.
+  experiments: Record<string, string[]>;
   // Model → trọng số nạp được vào model đó (chỉ model đang có trọng số trên máy).
   checkpoints: Record<string, string[]>;
 }
@@ -39,12 +44,14 @@ export interface RunResult {
   metrics: Metric[];
   records: Record<string, unknown>[];
   timings: Record<string, number>;
+  // Group dùng cấu hình mặc định làm mốc; null khi mốc nằm trong từng bản ghi. result.json cũ không có khoá này.
+  baseline?: string | null;
 }
 export interface RunSummary { command: string; run_id: string; state: RunState; config: Record<string, unknown> | null }
 export interface RunDetail extends RunSummary { events: LabEvent[]; result: RunResult | null; stderr: string[] }
 
 const STATUS_TEXT: Record<number, string> = {
-  403: "Bàn làm việc chỉ mở được từ localhost.",
+  403: "Phòng làm việc chỉ mở được từ localhost.",
   422: "Yêu cầu không hợp lệ.",
 };
 

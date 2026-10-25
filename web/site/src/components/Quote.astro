@@ -15,7 +15,7 @@ const { author, role } = Astro.props;
 </figure>
 
 <style>
-  .quote { position: relative; margin: 0; padding: var(--space-8) var(--space-10); display: flex; flex-direction: column; gap: var(--space-4); overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); backdrop-filter: blur(var(--blur-content)); -webkit-backdrop-filter: blur(var(--blur-content)); }
+  .quote { position: relative; margin: 0; padding: var(--space-8) var(--space-10); display: flex; flex-direction: column; gap: var(--space-4); overflow: hidden; border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); backdrop-filter: blur(var(--blur-content)); -webkit-backdrop-filter: blur(var(--blur-content)); }
   .quote::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--fill-accent-solid); }
   blockquote { margin: 0; font: italic 300 24px/1.7 var(--font-serif); color: var(--text-primary); }
   figcaption { display: flex; align-items: center; gap: var(--space-3); }

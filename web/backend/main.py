@@ -1,7 +1,7 @@
 """Ứng dụng FastAPI của web SAI bản server.
 
 - ``/api/*``: chat, mô hình, lịch sử, admin (analytics).
-- ``/api/lab/*``: bàn thử nghiệm, chỉ khi truyền ``lab`` (``python -m web --lab``); không bật thì trả 503.
+- ``/api/lab/*``: phòng làm việc, chỉ khi truyền ``lab`` (``python -m web --lab``); không bật thì trả 503.
 - ``/admin/``: trang admin đọc ``/api/admin/*``.
 - ``/``: site Astro đã build (``web/site/dist/server``). ``StaticFiles(html=True)`` trả ``index.html`` của
   thư mục, ``404.html`` khi không có trang và chặn đường dẫn thoát ra ngoài thư mục site.

@@ -1,4 +1,4 @@
-"""Bàn thử nghiệm (``python -m web --lab``, /api/lab): chặn Host lạ, kiểm spec, hàng đợi job, SSE, huỷ, đọc run.
+"""Phòng làm việc (``python -m web --lab``, /api/lab): chặn Host lạ, kiểm spec, hàng đợi job, SSE, huỷ, đọc run.
 
 Phần lớn test dùng một "lab giả" (script Python nhỏ ghi đúng định dạng thư mục run) để chạy nhanh và
 điều khiển được kết quả. Hai test cuối gọi lệnh lab thật để kiểm hợp đồng giữa hai bên.
@@ -11,7 +11,7 @@ import time
 import pytest
 import torch
 from fastapi.testclient import TestClient
-from helpers import TINY_MODEL
+from helpers import INFER_MODEL
 from test_web import fake_loader, isolated_data  # noqa: F401  (fixture dùng chung với test web)
 from foundation_lab.catalog import build_model
 from web import __main__ as cli
@@ -60,8 +60,16 @@ if spec["fake"] == "linger":
 
 DESCRIPTION = {
     "format_version": 1,
-    "commands": {"infer": {"department": "inference", "spec": {"type": "object", "fields": {}}}},
-    "models": ["SAI_35M", "SAI_375M"],
+    "commands": {
+        "infer": {"department": "inference", "spec": {"type": "object", "fields": {}}},
+        "compare-kernel": {"department": "arch", "spec": {"type": "object", "fields": {}}},
+        "compare-objective": {"department": "objectives", "spec": {"type": "object", "fields": {}}},
+        # Lệnh lab mà web chưa có kiểm tra spec: web không chạy nó.
+        "unchecked": {"department": "eval", "spec": {"type": "object", "fields": {}}},
+    },
+    "models": ["SAI_35M", "SAI_375M", "SAI_modular_35M"],
+    "model_families": {"SAI_35M": "SAI", "SAI_375M": "SAI", "SAI_modular_35M": "SAI_modular"},
+    "experiments": {"SAI_35M": ["pretrain", "sft1"]},
     "weights": ["model/sft1_35M.pt", "model/sft1_375M.pt"],
     "checkpoints": {"SAI_35M": ["model/sft1_35M.pt"], "SAI_375M": ["model/sft1_375M.pt"]},
     "benchmark_path": "benchmark.yaml",
@@ -97,10 +105,10 @@ def submit(client, behaviour: str) -> str:
     assert response.status_code == 202, response.text
     return response.json()["run_id"]
 
-def wait_state(client, run_id: str, states: tuple[str, ...]) -> dict:
+def wait_state(client, run_id: str, states: tuple[str, ...], command: str = "infer") -> dict:
     deadline = time.monotonic() + WAIT_TIMEOUT_SEC
     while time.monotonic() < deadline:
-        detail = client.get(f"/api/lab/jobs/infer/{run_id}").json()
+        detail = client.get(f"/api/lab/jobs/{command}/{run_id}").json()
         if detail["state"] in states:
             return detail
         time.sleep(POLL_SEC)
@@ -146,9 +154,34 @@ def test_lab_flag_requires_loopback_host():
     {"command": "infer", "spec": {**fake_spec("ok"), "model": {"family": "SAI"}}},
     # Trọng số có trên máy nhưng của model khác cỡ.
     {"command": "infer", "spec": {**fake_spec("ok"), "checkpoint": "model/sft1_375M.pt"}},
+    # Tên model thành đường dẫn file config trong lab: chỉ nhận tên lab đã liệt kê, không nhận config viết sẵn.
+    {"command": "compare-kernel", "spec": {"candidate": "eager", "models": ["../../etc/passwd"]}},
+    {"command": "compare-kernel", "spec": {"candidate": "eager", "models": {"x": {"family": "SAI_modular"}}}},
+    {"command": "compare-kernel", "spec": {"candidate": "eager"}},
+    # Tên experiment cũng thành đường dẫn file trong lab.
+    {"command": "compare-objective", "spec": {"candidate": "lm_ce", "experiments": ["../../etc/passwd"]}},
+    {"command": "compare-objective", "spec": {"candidate": "lm_ce", "experiments": {"x": {"objective": "lm_ce"}}}},
+    {"command": "compare-objective", "spec": {"candidate": "lm_ce"}},
+    {"command": "unchecked", "spec": {"fake": "ok"}},
 ])
 def test_submit_rejects_unknown_command_and_unlisted_resources(client, body):
     assert client.post("/api/lab/jobs", json=body).status_code == 400
+
+def test_compare_kernel_job_runs_with_listed_models(client, runs_root):
+    spec = {"candidate": "eager", "models": ["SAI_modular_35M"], "fake": "ok"}
+    response = client.post("/api/lab/jobs", json={"command": "compare-kernel", "spec": spec})
+    assert response.status_code == 202, response.text
+    run_id = response.json()["run_id"]
+    assert wait_state(client, run_id, ("succeeded",), command="compare-kernel")["config"]["models"] == ["SAI_modular_35M"]
+    assert (runs_root / "compare-kernel" / run_id / "result.json").exists()
+
+def test_compare_objective_job_runs_with_listed_experiments(client, runs_root):
+    spec = {"candidate": "lm_ce", "experiments": ["SAI_35M"], "stage": "sft1", "fake": "ok"}
+    response = client.post("/api/lab/jobs", json={"command": "compare-objective", "spec": spec})
+    assert response.status_code == 202, response.text
+    run_id = response.json()["run_id"]
+    assert wait_state(client, run_id, ("succeeded",), command="compare-objective")["config"]["experiments"] == ["SAI_35M"]
+    assert (runs_root / "compare-objective" / run_id / "result.json").exists()
 
 def test_benchmark_read_and_save_keeps_header(client, tmp_path):
     assert client.get("/api/lab/benchmark").json() == {"prompts": ["xin chào"]}
@@ -259,8 +292,9 @@ def test_read_events_skips_partial_last_line(tmp_path):
 
 def test_real_lab_describe_matches_web_format():
     description = describe(LAB_COMMAND, PROJECT_ROOT)
-    assert "infer" in description["commands"]
-    assert {"checkpoints", "benchmark_path", "departments"} <= set(description)
+    assert {"infer", "compare-kernel", "compare-objective"} <= set(description["commands"])
+    assert {"checkpoints", "benchmark_path", "departments", "models", "model_families", "experiments"} <= set(description)
+    assert set(description["model_families"]) == set(description["models"])
     assert (PROJECT_ROOT / description["benchmark_path"]).is_file()
 
 def test_lab_fields_match_describe_schema():
@@ -286,8 +320,14 @@ def test_lab_fields_match_describe_schema():
             for sibling in hint.get("visible_when", {}):
                 parent = path.rsplit(".", 1)[0] if "." in path else ""
                 field_at(spec, f"{parent}.{sibling}" if parent else sibling)
-            if "source" in hint and not hint["source"].startswith("registry:"):
-                assert hint["source"] in description, path
+            source = hint.get("source")
+            if source is not None and source.startswith("models:"):
+                # "models:<họ>": tên model thuộc họ đó, theo "model_families" của describe.
+                family = source.removeprefix("models:")
+                choices = [name for name, model_family in description["model_families"].items() if model_family == family]
+                assert choices and set(hint.get("initial", [])) <= set(choices), path
+            elif source is not None and not source.startswith("registry:"):
+                assert source in description, path
             if "filter_by" in hint:
                 parent = path.rsplit(".", 1)[0] if "." in path else ""
                 field_at(spec, f"{parent}.{hint['filter_by']}" if parent else hint["filter_by"])
@@ -295,7 +335,9 @@ def test_lab_fields_match_describe_schema():
                 choices = description[hint["source"]]
                 if "filter_by" in hint:
                     choices = [value for values in choices.values() for value in values]
-                assert hint["initial"] in choices or not choices, path
+                # Chips có giá trị ban đầu là danh sách lựa chọn đang bật.
+                initial = hint["initial"] if isinstance(hint["initial"], list) else [hint["initial"]]
+                assert set(initial) <= set(choices) or not choices, path
             assert not (field["type"] in ("map", "union", "any") and "source" not in hint and not hint.get("hidden")), \
                 f"{path}: kiểu {field['type']} cần 'source' hoặc 'hidden' để form có ô nhập"
             widget = hint.get("widget")
@@ -305,6 +347,10 @@ def test_lab_fields_match_describe_schema():
                 assert field["type"] == "choice" or "choices" in hint or "source" in hint, f"{path}: segmented cần danh sách lựa chọn"
             if widget == "lines":
                 assert field["type"] == "list" and field["items"]["type"] == "str", f"{path}: lines cần list[str]"
+            if widget == "chips":
+                assert source is not None, f"{path}: chips cần 'source' để có danh sách lựa chọn"
+            if hint.get("baseline"):
+                assert field["type"] == "list" and field["items"]["type"] == "object", f"{path}: baseline chỉ dùng cho danh sách object"
             if "summary" in hint:
                 assert "{}" in hint["summary"], f"{path}: mẫu tóm tắt cần chỗ '{{}}' cho giá trị"
             if hint.get("inline"):
@@ -314,12 +360,11 @@ def test_lab_fields_match_describe_schema():
 def test_real_lab_infer_through_runner(tmp_path):
     """Hợp đồng thật giữa hai bên: spec qua stdin, --run-id/--runs-root, mã thoát, file trong thư mục run."""
     torch.manual_seed(0)
-    model = {**TINY_MODEL, "vocab_size": 10000}
     checkpoint = tmp_path / "tiny.pt"
-    torch.save(build_model(model).state_dict(), checkpoint)
+    torch.save(build_model(INFER_MODEL).state_dict(), checkpoint)
     spec = {
-        "model": model, "checkpoint": str(checkpoint), "device": "cpu", "prompts": ["xin chào"],
-        "variants": [{"name": "greedy", "generation": {"strategy": "greedy", "max_new_tokens": 3}}],
+        "model": INFER_MODEL, "checkpoint": str(checkpoint), "device": "cpu", "prompts": ["xin chào"],
+        "variants": [{"name": "default"}],
     }
 
     async def run_job():

@@ -1,7 +1,7 @@
 ---
-// SectionHeader trên Figma: overline, tiêu đề có phần nhấn nghiêng, mô tả. level 1 cho đầu trang, 2 cho section.
+// SectionHeader trên Figma: overline (có thể bỏ), tiêu đề có phần nhấn nghiêng, mô tả. level 1 cho đầu trang, 2 cho section.
 interface Props {
-  overline: string;
+  overline?: string;
   title: string;
   emphasis: string;
   description?: string;
@@ -13,7 +13,7 @@ const { overline, title, emphasis, description, align = "left", level = 2, id } 
 const Heading = level === 1 ? "h1" : "h2";
 ---
 <div class:list={["section-header", { "is-center": align === "center" }]}>
-  <p class="t-overline">{overline}</p>
+  {overline && <p class="t-overline">{overline}</p>}
   <Heading class={level === 1 ? "t-h1" : "t-h2"} id={id}>{title}{" "}<em>{emphasis}</em></Heading>
   {description && <p class="t-large">{description}</p>}
   <slot />

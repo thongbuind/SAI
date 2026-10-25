@@ -1,25 +1,26 @@
 ---
-// Trang chủ. Bảng mô hình, phòng ban và pipeline đọc từ src/data (sinh bởi web/scripts/export_site_data.py).
+// Trang chủ, bố cục theo trang giới thiệu dev2: mỗi nội dung chiếm trọn một màn hình (hero, xây từ con số 0, bắt đầu
+// nhanh, kiến trúc, hội thoại, thông báo + footer), các khối hiện dần khi cuộn tới.
+// Bảng mô hình đọc từ src/data (sinh bởi web/scripts/export_site_data.py).
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
+import Badge from "../components/Badge.astro";
 import Icon from "../components/Icon.astro";
 import SectionHeader from "../components/SectionHeader.astro";
 import PillarCard from "../components/PillarCard.astro";
-import ArchitectureDiagram from "../components/ArchitectureDiagram.astro";
 import ModelTable from "../components/ModelTable.astro";
-import Pipeline from "../components/Pipeline.astro";
 import CodeBlock from "../components/CodeBlock.astro";
-import Timeline from "../components/Timeline.astro";
+import ChatPreview from "../components/ChatPreview.astro";
 import Notice from "../components/Notice.astro";
 import Quote from "../components/Quote.astro";
+import Footer from "../components/Footer.astro";
 import { url } from "../lib/paths";
-import { GITHUB_URL } from "../lib/site";
-import { departmentIcon } from "../lib/departments";
+import { FACEBOOK_URL } from "../lib/site";
 import { deployTarget } from "../lib/target";
 import models from "../data/models.json";
-import lab from "../data/lab.json";
 
 const largest = models.at(-1)!;
+const installCommand = "$ pip install torch transformers sentencepiece";
 const quickStart = `from transformers import AutoModelForCausalLM, AutoTokenizer
 
 model_id = "${largest.repo_id}"
@@ -31,133 +32,188 @@ messages = [
     {"role": "user", "content": "Trí tuệ nhân tạo là gì"},
 ]
 print(model.generate_response(tokenizer=tokenizer, messages=messages))`;
+const USE_CASES = ["Smarthome", "Edge device", "IoT", "Chatbot", "Trợ lý cá nhân", "Q&A chuyên ngành"];
 // /try/ là hướng dẫn tải ở bản static và là chat ở bản server, nên lời dẫn tới đó khác nhau.
-const TRY_COPY = {
-  static: { link: "Hướng dẫn chi tiết", title: "Thử SAI", emphasis: "trên máy của bạn", description: "Chọn cỡ mô hình, cài thư viện, chạy vài dòng Python." },
-  server: { link: "Trò chuyện với SAI", title: "Trò chuyện", emphasis: "với SAI ngay bây giờ", description: "Hỏi bằng tiếng Việt ngay trên trình duyệt, chọn cỡ mô hình bạn muốn." },
-}[deployTarget()];
+const TRY_LINK = { static: "Chạy SAI trên máy bạn", server: "Trò chuyện với SAI" }[deployTarget()];
 ---
-<BaseLayout title="SAI · Mô hình ngôn ngữ thuần Việt" description="SAI là mô hình ngôn ngữ thuần Việt xây từ con số 0, mở toàn bộ kiến trúc, code huấn luyện, trọng số và Foundation Lab." current="home">
-  <div class="container">
-    <section class="hero" aria-labelledby="hero-title">
-      <h1 class="t-display-hero" id="hero-title">SAI</h1>
-      <p class="t-eyebrow">powered by Nidai</p>
-      <p class="t-lead">Mô hình ngôn ngữ <strong>thuần Việt</strong>, xây từ con số 0. Mở toàn bộ kiến trúc, code huấn luyện, trọng số, và một lab để bạn tự thí nghiệm.</p>
-      <div class="hero-actions">
-        <Button variant="primary" size="lg" icon="bolt" href={url("/try/")}>Trải nghiệm ngay</Button>
-        <Button variant="secondary" size="lg" trailingIcon="arrow-right" href={url("/lab/quickstart/")}>Khám phá Foundation Lab</Button>
-      </div>
-    </section>
+<BaseLayout title="SAI · Mô hình ngôn ngữ thuần Việt" description="SAI là mô hình ngôn ngữ thuần Việt xây từ con số 0, mở toàn bộ kiến trúc, code huấn luyện, trọng số và Foundation Lab." current="home" footer={false}>
+  <section class="screen hero" aria-labelledby="hero-title">
+    <h1 class="t-display-hero" id="hero-title">SAI</h1>
+    <p class="t-eyebrow">powered by Nidai</p>
+    <p class="t-lead">Mô hình ngôn ngữ <strong>thuần Việt</strong>, xây từ con số 0. Mở toàn bộ kiến trúc, code huấn luyện, trọng số, và một lab để bạn tự thí nghiệm.</p>
+    <div class="hero-actions">
+      <Button variant="primary" size="lg" icon="bolt" href={url("/try/")}>Trải nghiệm ngay</Button>
+      <Button variant="secondary" size="lg" trailingIcon="arrow-right" href={url("/lab/overview/")}>Khám phá Foundation Lab</Button>
+    </div>
+    <a class="scroll-hint" href="#intro">
+      <span class="scroll-mouse" aria-hidden="true"><i></i></span>
+      <span class="scroll-label">Cuộn xuống</span>
+    </a>
+  </section>
 
-    <section class="section" aria-labelledby="why-title">
-      <SectionHeader align="center" id="why-title" overline="01 · Vì sao SAI" title="Một LLM tiếng Việt" emphasis="bạn có thể đọc hết" description="SAI nhỏ có chủ đích: đủ nhỏ để một người hiểu được toàn bộ, đủ thật để huấn luyện, phát hành và trò chuyện." />
-      <div class="grid-3">
+  <section class="screen" id="intro" aria-labelledby="intro-title">
+    <div class="container narrow stack">
+      <div class="intro-text reveal">
+        <h2 class="t-h1" id="intro-title">Build <em>from scratch</em><br /><em>Open</em> source</h2>
+        <p class="t-large">SAI không được fine-tune từ mô hình có sẵn. Toàn bộ kiến trúc, code huấn luyện và bộ tham số đều được <strong>xây dựng từ con số 0</strong> bởi <strong>Nidai</strong>.</p>
+      </div>
+      <div class="pillars reveal reveal-1">
         <PillarCard icon="code" title="Xây từ con số 0">Không fine-tune từ mô hình có sẵn. Tokenizer, kiến trúc, vòng huấn luyện và chat template đều viết trong repo này.</PillarCard>
         <PillarCard icon="cpu" title="Chạy trên máy phổ thông">{`Ba cỡ ${models.map(m => m.label).join(", ")}. Bản nhỏ chạy được trên CPU laptop, bản lớn tận dụng CUDA hoặc Apple MPS.`}</PillarCard>
-        <PillarCard icon="flask" title="Mở và tái lập được" href={url("/lab/quickstart/")} linkLabel="Xem Foundation Lab">Mỗi run ghi lại config đã resolve, commit git và dữ liệu đã dùng. Thêm biến thể chỉ bằng một dòng config.</PillarCard>
+        <PillarCard icon="flask" title="Mở và tái lập được" href={url("/lab/runs/")} linkLabel="Xem Foundation Lab">Mỗi run ghi lại config đã resolve, commit git và dữ liệu đã dùng. Thêm biến thể chỉ bằng một dòng config.</PillarCard>
       </div>
-    </section>
-
-    <section class="section" id="models" aria-labelledby="arch-title">
-      <div class="split">
-        <div class="split-text">
-          <SectionHeader id="arch-title" overline="02 · Kiến trúc" title="Decoder-only," emphasis="gọn và hiện đại" description="Pre-norm RMSNorm, Grouped Query Attention với RoPE, FFN SwiGLU không bias, và lm head chia sẻ trọng số với embedding." />
-        </div>
-        <ArchitectureDiagram />
+      <div class="reveal reveal-2">
+        <Quote author="Nidai" role="Tác giả · sinh viên · builder">"Bước cùng kỷ nguyên vươn mình của dân tộc Việt Nam hùng cường"</Quote>
       </div>
-      <div class="table"><ModelTable /></div>
-    </section>
+    </div>
+  </section>
 
-    <section class="section" aria-labelledby="lab-title">
-      <div class="split">
-        <div class="split-text">
-          <SectionHeader id="lab-title" overline="03 · Foundation Lab" title="Một lab để" emphasis="ai cũng thí nghiệm được" description="Lab tổ chức như các phòng ban. Mỗi phòng sở hữu một registry; thêm biến thể bằng cách đăng ký rồi chọn qua config, không sửa code phòng khác.">
-            <div><Button variant="primary" size="md" trailingIcon="arrow-right" href={url("/lab/quickstart/")}>Vào Foundation Lab</Button></div>
+  <section class="screen" aria-labelledby="start-title">
+    <div class="container narrow stack">
+      <div class="reveal">
+        <SectionHeader align="center" id="start-title" title="Bắt đầu" emphasis="nhanh" description="Trọng số có trên Hugging Face và tải được bằng Transformers. Lần chạy đầu tự tải model, tokenizer và config; các lần sau dùng bộ nhớ đệm." />
+      </div>
+      <div class="quick-start">
+        <div class="reveal reveal-1"><CodeBlock code={installCommand} lang="bash" kind="terminal" wrap /></div>
+        <div class="reveal reveal-2"><CodeBlock code={quickStart} lang="python" title="quick_start.py" /></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="models" aria-labelledby="arch-title">
+    <div class="container stack">
+      <div class="reveal">
+        <SectionHeader align="center" id="arch-title" title="Kiến trúc" emphasis="mô hình" description="Ba cỡ mô hình cho các môi trường khác nhau, cùng một kiến trúc decoder-only: pre-norm RMSNorm, Grouped Query Attention với RoPE, FFN SwiGLU." />
+      </div>
+      <div class="reveal reveal-1"><ModelTable /></div>
+      <div class="use-cases reveal reveal-2">
+        <span class="t-overline">Ứng dụng</span>
+        {USE_CASES.map(useCase => <Badge>{useCase}</Badge>)}
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" aria-labelledby="chat-title">
+    <div class="container narrow split">
+      <div class="reveal">
+        <SectionHeader id="chat-title" title="Hội thoại" emphasis="tự nhiên, ngắn gọn" description="Hỏi bằng tiếng Việt, SAI trả lời theo ngữ cảnh của cuộc trò chuyện. Chọn cỡ mô hình phù hợp với máy của bạn.">
+          <div><Button size="sm" trailingIcon="arrow-right" href={url("/try/")}>{TRY_LINK}</Button></div>
+        </SectionHeader>
+      </div>
+      <div class="reveal reveal-2">
+        <ChatPreview question="Giải thích về transformer architecture" answer={`Transformer là kiến trúc nền tảng của các mô hình AI hiện đại, dựa trên cơ chế "attention" cho phép mô hình hiểu mối quan hệ giữa các từ trong toàn bộ câu cùng một lúc.`} />
+      </div>
+    </div>
+  </section>
+
+  <!-- Màn cuối gồm cả footer: cuộn tới cuối trang là thấy trọn lưu ý và footer trong một khung. -->
+  <div class="final-screen">
+    <section class="screen" aria-labelledby="notice-title">
+      <div class="container narrow stack notice-stack">
+        <div class="reveal"><Badge><Icon name="info" size={12} />Thông báo từ nhà phát triển</Badge></div>
+        <div class="reveal reveal-1">
+          <SectionHeader align="center" id="notice-title" title="Một vài điều" emphasis="bạn nên biết">
+            <p class="t-eyebrow">Trước khi sử dụng SAI, hãy đọc kỹ những lưu ý dưới đây.</p>
           </SectionHeader>
         </div>
-        <div class="lab-side">
-          <nav class="department-links" aria-label="Các phòng ban">
-            {lab.departments.map(department => (
-              <a href={url("/lab/extending/#registry")}>
-                <Icon name={departmentIcon(department.code)} />
-                <span><b>{department.name.replace(/^Phòng /, "")}</b><code>{department.code}</code></span>
-              </a>
-            ))}
-          </nav>
-          <Pipeline vertical />
+        <div class="notices reveal reveal-2">
+          <Notice title="Dự án học thuật, quy mô nhỏ">SAI dùng để học và nghiên cứu cách một LLM được tạo ra, không thay thế các mô hình thương mại.</Notice>
+          <Notice tone="warning" title="Dữ liệu hạn chế">Lượng dữ liệu huấn luyện còn nhỏ nên kiến thức của mô hình hẹp và có thể lỗi thời.</Notice>
+          <Notice tone="danger" title="Hallucination nặng">Mô hình thường tự bịa thông tin. Hãy kiểm chứng mọi câu trả lời quan trọng với nguồn tin cậy.</Notice>
         </div>
+        <span class="divider reveal reveal-3" aria-hidden="true"></span>
+        <p class="t-large thanks reveal reveal-3">Cảm ơn bạn đã dành thời gian trải nghiệm SAI. Mọi phản hồi và góp ý đều được trân trọng, đừng ngại liên hệ qua Facebook.</p>
+        <div class="reveal reveal-4"><Button variant="primary" size="lg" icon="facebook" href={FACEBOOK_URL} external>Facebook</Button></div>
       </div>
     </section>
-
-    <section class="section" aria-labelledby="start-title">
-      <div class="grid-2">
-        <SectionHeader id="start-title" overline="04 · Bắt đầu nhanh" title="Chạy thử với" emphasis="vài dòng Python" description="Trọng số có trên Hugging Face và tải được bằng Transformers. Lần chạy đầu tự tải model, tokenizer và config; các lần sau dùng bộ nhớ đệm.">
-          <div><Button size="sm" trailingIcon="arrow-right" href={url("/try/")}>{TRY_COPY.link}</Button></div>
-        </SectionHeader>
-        <CodeBlock code={quickStart} lang="python" title="quick_start.py" />
-      </div>
-    </section>
-
-    <section class="section" aria-labelledby="journey-title">
-      <div class="grid-2">
-        <SectionHeader id="journey-title" overline="05 · Hành trình" title="Từ đồ án sinh viên" emphasis="đến dự án mở" description="Mỗi giai đoạn là một bước đổi cách làm, không chỉ thêm tính năng." />
-        <Timeline items={[
-          { phase: "dev2", status: "done", title: "Ba cỡ mô hình và web chat", description: `Pipeline pretrain → SFT1 → SFT2, phát hành ${models.map(m => m.label).join("/")} trên Hugging Face, web chat có lịch sử và cộng đồng.` },
-          { phase: "dev3", status: "current", title: "Foundation Lab: dự án mở", description: "Lab chia phòng ban, config nghiêm ngặt, lineage cho mọi run, quy ước phiên bản devX.Y.Z cho từng thành phần." },
-          { phase: "tiếp theo", status: "planned", title: "Phương pháp huấn luyện mới", description: "Distill, DPO, RLHF trong phòng Phương pháp huấn luyện." },
-        ]} />
-      </div>
-    </section>
-
-    <section class="section" aria-labelledby="notice-title">
-      <SectionHeader align="center" id="notice-title" overline="06 · Trước khi dùng" title="Một vài điều" emphasis="bạn nên biết" />
-      <div class="grid-3">
-        <Notice title="Dự án học thuật, quy mô nhỏ">SAI dùng để học và nghiên cứu cách một LLM được tạo ra, không thay thế các mô hình thương mại.</Notice>
-        <Notice tone="warning" title="Dữ liệu hạn chế">Lượng dữ liệu huấn luyện còn nhỏ nên kiến thức của mô hình hẹp và có thể lỗi thời.</Notice>
-        <Notice tone="danger" title="Hallucination nặng">Mô hình thường tự bịa thông tin. Hãy kiểm chứng mọi câu trả lời quan trọng với nguồn tin cậy.</Notice>
-      </div>
-      <div class="quote"><Quote author="Nidai" role="Tác giả · sinh viên · builder">"Bước cùng kỷ nguyên vươn mình của dân tộc Việt Nam hùng cường"</Quote></div>
-    </section>
-
-    <section class="section cta" aria-labelledby="cta-title">
-      <SectionHeader align="center" id="cta-title" overline="Bắt đầu" title={TRY_COPY.title} emphasis={TRY_COPY.emphasis} description={TRY_COPY.description} />
-      <div class="hero-actions">
-        <Button variant="primary" size="lg" icon="bolt" href={url("/try/")}>Trải nghiệm ngay</Button>
-        <Button variant="secondary" size="lg" icon="github" href={GITHUB_URL} external>Xem trên GitHub</Button>
-      </div>
-    </section>
+    <Footer />
   </div>
 </BaseLayout>
 
 <style>
-  .hero { min-height: 100svh; padding-block: calc(var(--size-nav-height) + var(--space-20)) var(--space-12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-6); text-align: center; }
+  /* Mỗi màn hình cao ít nhất một khung nhìn, nội dung căn giữa dọc; phía trên chừa chỗ cho navbar nổi. Nội dung cao
+     hơn khung (mobile) thì màn hình dài ra, không cắt chữ. */
+  .screen { position: relative; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding-block: calc(16px + var(--size-nav-height) + var(--space-4)) var(--space-6); border-top: 1px solid var(--border-subtle); }
+  .final-screen { min-height: 100svh; display: flex; flex-direction: column; }
+  .final-screen > .screen { flex: 1; min-height: 0; }
+
+  .hero { padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); align-items: center; gap: var(--space-6); text-align: center; border-top: 0; }
   .hero h1, .hero p { margin: 0; }
   .t-display-hero { padding-left: 0.18em; }
   .hero .t-eyebrow { margin-top: calc(-1 * var(--space-4)); }
   .t-lead { max-width: 600px; }
-  .t-lead strong { color: var(--text-primary); font-weight: 600; }
+  :is(.t-lead, .t-large) strong { color: var(--text-primary); font-weight: 500; }
   .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-top: var(--space-4); }
-  .section { display: flex; flex-direction: column; gap: var(--space-12); }
-  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
-  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); align-items: start; }
-  .split { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: var(--space-12); align-items: start; }
-  .split-text { position: sticky; top: 96px; }
-  .lab-side { display: flex; flex-direction: column; gap: var(--space-4); }
-  .department-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
-  .department-links a { display: flex; align-items: center; gap: var(--space-3); min-width: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--border-default); background: var(--surface-base); text-decoration: none; color: var(--text-accent); }
-  .department-links a:hover { border-color: var(--border-strong); }
-  .department-links b { display: block; font: 500 13px/1.3 var(--font-sans); color: var(--text-primary); }
-  .department-links code { padding: 0; background: none; font-size: 11px; color: var(--text-tertiary); }
-  .quote { margin-top: calc(-1 * var(--space-4)); }
-  .cta { align-items: center; }
+  .scroll-hint { position: absolute; bottom: var(--space-8); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-decoration: none; color: var(--text-tertiary); }
+  .scroll-hint:hover { color: var(--text-accent); }
+  .scroll-mouse { display: flex; justify-content: center; width: 22px; height: 34px; padding-top: 5px; border-radius: var(--radius-control); border: 1.5px solid currentColor; }
+  .scroll-mouse i { width: 3px; height: 7px; border-radius: var(--radius-control); background: currentColor; animation: scroll-wheel 2s ease-in-out infinite; }
+  .scroll-label { font: 500 10px/1 var(--font-sans); letter-spacing: 0.2em; text-transform: uppercase; }
+  @keyframes scroll-wheel { 50% { opacity: 0.3; transform: translateY(6px); } }
+
+  /* Khối nội dung hẹp như trang dev2 (860px) để chữ và bảng không trải quá rộng. */
+  .narrow { max-width: calc(860px + 2 * max(16px, env(safe-area-inset-left, 0px))); }
+  .stack { display: flex; flex-direction: column; gap: var(--space-6); }
+  .intro-text { display: flex; flex-direction: column; gap: var(--space-5); }
+  .intro-text > * { margin: 0; }
+  .intro-text .t-large { max-width: 580px; }
+  /* Ba thẻ ghép thành một dải chung viền, ngăn bằng đường kẻ. */
+  .pillars { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; border-radius: var(--radius-card); border: 1px solid var(--border-default); box-shadow: var(--elevation-1); }
+  .pillars :global(.pillar) { border: 0; border-radius: 0; box-shadow: none; }
+  .pillars :global(.pillar + .pillar) { border-left: 1px solid var(--border-default); }
+  .quick-start { display: flex; flex-direction: column; gap: var(--space-4); }
+  .use-cases { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2); }
+  .use-cases .t-overline { margin-right: var(--space-2); }
+  .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); align-items: center; }
+  .notice-stack { align-items: center; text-align: center; }
+  .notices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); text-align: left; }
+  .divider { width: 60px; height: 1px; background: var(--gradient-accent-line); }
+  .thanks { max-width: 580px; margin: 0; }
+
+  /* Chuyển cảnh như dev2: hero hiện lần lượt khi tải trang, các khối .reveal mờ → rõ và trượt lên khi cuộn tới (lệch
+     nhịp theo reveal-1..4). Chỉ ẩn khối ban đầu khi có JS và người xem không bật giảm chuyển động, nên trong mọi
+     trường hợp khác nội dung hiện ngay. Dùng thuộc tính translate để không đè transform sẵn có của phần tử. */
+  @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    .hero > * { animation: hero-rise var(--duration-reveal) var(--easing-out) both; }
+    .hero > :nth-child(1) { animation-delay: 0.3s; }
+    .hero > :nth-child(2) { animation-delay: 0.45s; }
+    .hero > :nth-child(3) { animation-delay: 0.55s; }
+    .hero > :nth-child(4) { animation-delay: 0.7s; }
+    .hero > :nth-child(5) { animation-delay: 1.2s; }
+    .reveal { opacity: 0; translate: 0 32px; transition: opacity var(--duration-reveal) ease, translate var(--duration-reveal) ease; }
+    .reveal.is-visible { opacity: 1; translate: none; }
+    .reveal-1 { transition-delay: 0.1s; }
+    .reveal-2 { transition-delay: 0.22s; }
+    .reveal-3 { transition-delay: 0.36s; }
+    .reveal-4 { transition-delay: 0.5s; }
+  }
+  @keyframes hero-rise { from { opacity: 0; translate: 0 20px; } }
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html) { scroll-behavior: smooth; }
+  }
+
   @media (max-width: 900px) {
-    .grid-3, .grid-2, .split { grid-template-columns: 1fr; }
-    .split-text { position: static; }
-    .department-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .split, .notices { grid-template-columns: 1fr; }
+    .split { gap: var(--space-10); }
   }
   @media (max-width: 600px) {
     .t-display-hero { letter-spacing: 0.08em; }
     .hero-actions { flex-direction: column; width: 100%; }
     .hero-actions :global(.btn) { width: 100%; }
+    .pillars { grid-template-columns: 1fr; }
+    .pillars :global(.pillar + .pillar) { border-left: 0; border-top: 1px solid var(--border-default); }
   }
 </style>
+
+<script>
+  // Thêm is-visible khi khối .reveal vào màn hình (hiện một lần, không ẩn lại khi cuộn ngược).
+  const VISIBLE_RATIO = 0.12;
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    }
+  }, { threshold: VISIBLE_RATIO });
+  document.querySelectorAll(".reveal").forEach(element => observer.observe(element));
+</script>

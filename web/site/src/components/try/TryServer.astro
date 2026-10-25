@@ -1,34 +1,19 @@
 ---
-// /try/ của bản server: chat với mô hình qua /api (web/backend). Bố cục và trạng thái theo mockup chat:
-// màn chào, đang trò chuyện, chọn mô hình, xem chia sẻ (chỉ đọc), máy chủ đang nạp, lỗi gửi.
+// /try/ của bản server: chat với mô hình qua /api (web/backend). Bố cục theo trang chat dev2: thanh bên đóng sẵn
+// (mở bằng nút nổi góc trái), màn chào chỉ có SAI và ô nhập ở giữa màn hình, có tin nhắn thì ô nhập xuống đáy.
+// Trạng thái: màn chào, đang trò chuyện, chọn mô hình, xem chia sẻ (chỉ đọc), máy chủ đang nạp, lỗi gửi.
 import "../../styles/chat.css";
 import Icon from "../Icon.astro";
-import Badge from "../Badge.astro";
 import Button from "../Button.astro";
-import ThemeToggle from "../ThemeToggle.astro";
 import ChatSidebar from "./ChatSidebar.astro";
 import ChatComposer from "./ChatComposer.astro";
-
-const SUGGESTIONS = [
-  "Giải thích transformer cho người mới",
-  "Viết bài thơ ngắn về Hà Nội",
-  "Hướng dẫn nấu cháo gà",
-  "RoPE hoạt động thế nào?",
-];
 ---
-<div class="chat-app" data-try="server">
+<div class="chat-app" id="chat-app" data-try="server">
   <div class="chat-scrim" id="chat-scrim" hidden></div>
   <ChatSidebar />
+  <button class="icon-btn icon-btn-lg icon-btn-control chat-sidebar-open glass-control" type="button" id="chat-sidebar-open" aria-label="Mở thanh bên" aria-controls="chat-sidebar" aria-expanded="false"><Icon name="panel-left" /></button>
 
-  <div class="chat-main">
-    <div class="chat-topbar">
-      <button class="icon-btn" type="button" id="chat-sidebar-open" aria-label="Mở thanh bên" aria-controls="chat-sidebar" aria-expanded="false"><Icon name="panel-left" /></button>
-      <span class="chat-title" id="chat-title">Cuộc trò chuyện mới</span>
-      <span class="grow"></span>
-      <span class="chat-status" id="chat-status" role="status"><Badge tone="warning" dot>Đang kết nối máy chủ</Badge></span>
-      <ThemeToggle />
-    </div>
-
+  <div class="chat-main is-welcome" id="chat-main">
     <div class="readonly-banner glass-control" id="chat-readonly" hidden>
       <Icon name="info" />
       <span>Bạn đang xem cuộc trò chuyện được chia sẻ trong Cộng đồng · chỉ đọc</span>
@@ -38,11 +23,6 @@ const SUGGESTIONS = [
     <section class="welcome" id="chat-welcome" aria-label="Bắt đầu">
       <h1 class="t-display-hero">SAI</h1>
       <p class="t-eyebrow">powered by Nidai</p>
-      <p class="t-large">Hỏi bằng tiếng Việt. Câu trả lời có thể sai, hãy kiểm chứng điều quan trọng.</p>
-      <div id="chat-welcome-status" hidden><Badge tone="warning" dot>Máy chủ đang nạp mô hình, ô nhập sẽ mở khi sẵn sàng</Badge></div>
-      <div class="suggestions">
-        {SUGGESTIONS.map(text => <button class="suggestion" type="button" data-suggest>{text}</button>)}
-      </div>
     </section>
 
     <div class="chat-scroll" id="chat-scroll" hidden>
@@ -76,9 +56,9 @@ const SUGGESTIONS = [
   const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-  const sidebar = $("chat-sidebar"), scrim = $("chat-scrim"), openSidebarButton = $<HTMLButtonElement>("chat-sidebar-open");
-  const welcome = $("chat-welcome"), welcomeStatus = $("chat-welcome-status"), scroll = $("chat-scroll"), thread = $("chat-thread");
-  const readonlyBanner = $("chat-readonly"), dock = $("chat-dock"), title = $("chat-title");
+  const app = $("chat-app"), scrim = $("chat-scrim"), openSidebarButton = $<HTMLButtonElement>("chat-sidebar-open");
+  const main = $("chat-main"), welcome = $("chat-welcome"), scroll = $("chat-scroll"), thread = $("chat-thread");
+  const readonlyBanner = $("chat-readonly"), dock = $("chat-dock"), status = $("chat-status");
   const composer = $<HTMLFormElement>("chat-composer"), input = $<HTMLTextAreaElement>("chat-message"), send = $<HTMLButtonElement>("chat-send");
   const shareButton = $<HTMLButtonElement>("chat-share"), modelSelect = $<HTMLButtonElement>("chat-model-select");
   const modelMenu = $("chat-model-menu"), modelLabelText = $("chat-model-label");
@@ -132,7 +112,7 @@ const SUGGESTIONS = [
     }
   }
 
-  function setBadge(container: HTMLElement, tone: "success" | "warning" | "danger", text: string) {
+  function setBadge(container: HTMLElement, tone: "warning" | "danger", text: string) {
     const badge = container.querySelector(".badge")!;
     badge.classList.remove("badge-success", "badge-warning", "badge-danger");
     badge.classList.add(`badge-${tone}`);
@@ -141,18 +121,14 @@ const SUGGESTIONS = [
 
   function renderStatus() {
     const state = selectedState();
-    const [tone, text] = connectionLost ? ["danger", "Không kết nối được máy chủ"] as const
-      : state === "ready" ? ["success", "Máy chủ sẵn sàng"] as const
-      : state === "error" ? ["danger", "Mô hình không nạp được"] as const
-      : ["warning", "Đang nạp mô hình"] as const;
-    setBadge($("chat-status"), tone, text);
-    welcomeStatus.hidden = state === "ready";
-    if (state !== "ready") {
-      setBadge(welcomeStatus, tone, connectionLost ? "Không kết nối được máy chủ, đang thử lại"
-        : state === "error" ? `${modelLabel(selectedModel)} không nạp được, hãy chọn mô hình khác`
-        : "Máy chủ đang nạp mô hình, ô nhập sẽ mở khi sẵn sàng");
+    // Badge dưới ô nhập chỉ hiện khi chưa gửi được: mất kết nối, mô hình lỗi hoặc đang nạp.
+    status.hidden = !connectionLost && state === "ready";
+    if (!status.hidden) {
+      const [tone, text] = connectionLost ? ["danger", "Không kết nối được máy chủ, đang thử lại"] as const
+        : state === "error" ? ["danger", `${modelLabel(selectedModel)} không nạp được, hãy chọn mô hình khác`] as const
+        : ["warning", "Máy chủ đang nạp mô hình, ô nhập sẽ mở khi sẵn sàng"] as const;
+      setBadge(status, tone, text);
     }
-    document.querySelectorAll<HTMLButtonElement>("[data-suggest]").forEach(button => { button.disabled = state !== "ready"; });
     renderComposer();
   }
 
@@ -252,6 +228,8 @@ const SUGGESTIONS = [
   // ===== Khung hội thoại =====
 
   function showWelcome(isWelcome: boolean) {
+    // is-welcome đưa chữ SAI và ô nhập vào giữa màn hình; bỏ class thì ô nhập neo ở đáy.
+    main.classList.toggle("is-welcome", isWelcome);
     welcome.hidden = !isWelcome;
     scroll.hidden = isWelcome;
     readonlyBanner.hidden = !conversation.readOnly;
@@ -260,10 +238,9 @@ const SUGGESTIONS = [
 
   const scrollToEnd = () => { scroll.scrollTop = scroll.scrollHeight; };
 
-  function appendAI(text: string, model: string, latencyMs: number | null, animate: boolean) {
-    const meta = latencyMs === null ? modelLabel(model)
-      : `${modelLabel(model)} · ${(latencyMs / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} giây`;
-    const { row, bubble } = aiMessage(meta, () => text);
+  // model: tên mô hình đã trả lời; lịch sử cũ có thể không lưu nên không hiện tên.
+  function appendAI(text: string, model: string | undefined, animate: boolean) {
+    const { row, bubble } = aiMessage(model ? modelLabel(model) : null, () => text);
     thread.append(row);
     if (!animate || REDUCED_MOTION.matches) {
       renderAIText(bubble, text);
@@ -284,10 +261,9 @@ const SUGGESTIONS = [
     thread.replaceChildren();
     for (const message of conversation.messages) {
       if (message.role === "user") thread.append(userMessage(message.text));
-      else if (message.role === "ai") appendAI(message.text, message.model ?? "", null, false);
+      else if (message.role === "ai") appendAI(message.text, message.model, false);
       else thread.append(systemMessage(message.text));
     }
-    title.textContent = conversationTitle(conversation.messages) ?? "Cuộc trò chuyện mới";
     showWelcome(conversation.messages.length === 0);
     renderComposer();
     renderHistoryHighlight();
@@ -311,7 +287,6 @@ const SUGGESTIONS = [
     const typing = typingMessage();
     showWelcome(false);
     thread.append(userRow, typing);
-    title.textContent = conversationTitle(current.messages) ?? text.slice(0, TITLE_MAX_CHARS);
     scrollToEnd();
     sending = true;
     renderComposer();
@@ -330,7 +305,7 @@ const SUGGESTIONS = [
     typing.remove();
     const answer = normalizeAIText(reply.reply);
     current.messages.push({ role: "user", text }, { role: "ai", text: answer, model: reply.model });
-    appendAI(answer, reply.model, reply.latency_ms, true);
+    appendAI(answer, reply.model, true);
     renderComposer();
     input.focus();
     await saveConversation(current);
@@ -390,12 +365,6 @@ const SUGGESTIONS = [
       composer.requestSubmit();
     }
   });
-
-  document.querySelectorAll<HTMLButtonElement>("[data-suggest]").forEach(button => button.addEventListener("click", () => {
-    input.value = button.textContent!.trim();
-    autoSize();
-    input.focus();
-  }));
 
   shareButton.addEventListener("click", async () => {
     try {
@@ -548,31 +517,34 @@ const SUGGESTIONS = [
 
   // ===== Thanh bên =====
 
+  // Đóng/mở bằng class sidebar-open trên .chat-app: CSS lo hiệu ứng phóng to từ nút, ẩn nút mở và đẩy nội dung chính.
+  const isSidebarOpen = () => app.classList.contains("sidebar-open");
+
   function setSidebar(open: boolean) {
-    sidebar.hidden = !open;
-    openSidebarButton.hidden = open;
+    app.classList.toggle("sidebar-open", open);
     openSidebarButton.setAttribute("aria-expanded", String(open));
     scrim.hidden = !(open && NARROW.matches);
   }
 
   function closeSidebarOnNarrow() {
-    if (NARROW.matches && !sidebar.hidden) setSidebar(false);
+    if (NARROW.matches && isSidebarOpen()) setSidebar(false);
   }
 
   $("chat-sidebar-close").addEventListener("click", () => { setSidebar(false); openSidebarButton.focus(); });
   openSidebarButton.addEventListener("click", () => { setSidebar(true); $("chat-sidebar-close").focus(); });
   scrim.addEventListener("click", () => setSidebar(false));
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && NARROW.matches && !sidebar.hidden) {
+    if (event.key === "Escape" && NARROW.matches && isSidebarOpen()) {
       setSidebar(false);
       openSidebarButton.focus();
     }
   });
-  NARROW.addEventListener("change", () => setSidebar(!NARROW.matches));
+  // Đổi giữa màn rộng và hẹp thì giữ trạng thái đóng/mở, chỉ cập nhật lớp phủ.
+  NARROW.addEventListener("change", () => setSidebar(isSidebarOpen()));
   $("chat-new").addEventListener("click", newChat);
   $("chat-readonly-new").addEventListener("click", newChat);
 
-  setSidebar(!NARROW.matches);
+  setSidebar(false);
   renderConversation();
   refreshModels();
   loadMine();

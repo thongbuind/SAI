@@ -10,7 +10,7 @@ export function iconSvg(name: IconName): string {
 export function iconButton(icon: IconName, label: string): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
-  button.className = "icon-btn";
+  button.className = "icon-btn icon-btn-sm";
   button.setAttribute("aria-label", label);
   button.innerHTML = iconSvg(icon);
   return button;
@@ -65,38 +65,46 @@ export function renderAIText(element: HTMLElement, text: string): void {
 
 export function userMessage(text: string): HTMLElement {
   const row = document.createElement("div");
-  row.className = "msg-user";
+  row.className = "bubble bubble-user";
   row.textContent = text;
   return row;
 }
 
-function aiRow(): { row: HTMLElement; body: HTMLElement } {
+// Khung câu trả lời như web dev2: tên mô hình (nếu có) ở trên, rồi hàng avatar "SAI" + thân tin nhắn.
+function aiRow(label: string | null): { row: HTMLElement; body: HTMLElement } {
   const row = document.createElement("div");
   row.className = "msg-ai";
+  if (label) {
+    const labelElement = document.createElement("span");
+    labelElement.className = "bubble-label";
+    labelElement.textContent = label;
+    row.append(labelElement);
+  }
+  const line = document.createElement("div");
+  line.className = "msg-ai-row";
   const avatar = document.createElement("span");
   avatar.className = "chat-avatar";
   avatar.setAttribute("aria-hidden", "true");
-  avatar.textContent = "S";
+  avatar.textContent = "SAI";
   const body = document.createElement("div");
   body.className = "msg-ai-body";
-  row.append(avatar, body);
+  line.append(avatar, body);
+  row.append(line);
   return { row, body };
 }
 
-// Bong bóng trả lời rỗng kèm dòng meta và nút sao chép; trang chat tự điền chữ (hiện dần hoặc hiện ngay).
-export function aiMessage(meta: string, copyText: () => string): { row: HTMLElement; bubble: HTMLElement } {
-  const { row, body } = aiRow();
+// Bong bóng trả lời rỗng kèm nút sao chép; trang chat tự điền chữ (hiện dần hoặc hiện ngay).
+// label: tên mô hình hiện trên câu trả lời; null khi lịch sử cũ không lưu mô hình.
+export function aiMessage(label: string | null, copyText: () => string): { row: HTMLElement; bubble: HTMLElement } {
+  const { row, body } = aiRow(label);
   const bubble = document.createElement("div");
-  bubble.className = "msg-ai-bubble glass-control";
-  const metaRow = document.createElement("div");
-  metaRow.className = "msg-meta";
-  const caption = document.createElement("span");
-  caption.className = "t-caption";
-  caption.textContent = meta;
+  bubble.className = "bubble bubble-ai glass-control";
+  const actions = document.createElement("div");
+  actions.className = "msg-actions";
   const copy = iconButton("copy", "Sao chép câu trả lời");
   copy.addEventListener("click", () => copyToClipboard(copy, copyText()));
-  metaRow.append(caption, copy);
-  body.append(bubble, metaRow);
+  actions.append(copy);
+  body.append(bubble, actions);
   return { row, bubble };
 }
 
@@ -119,8 +127,8 @@ export async function copyToClipboard(button: HTMLButtonElement, text: string): 
 }
 
 export function typingMessage(): HTMLElement {
-  const { row, body } = aiRow();
-  body.innerHTML = '<div class="typing" role="status"><i></i><i></i><i></i><span class="sr-only">SAI đang trả lời</span></div>';
+  const { row, body } = aiRow(null);
+  body.innerHTML = '<div class="bubble bubble-ai" role="status"><span class="typing-dots"><i></i><i></i><i></i></span><span class="sr-only">SAI đang trả lời</span></div>';
   return row;
 }
 

@@ -17,5 +17,5 @@ PROJECT_ROOT = WEB_DIR.parent
 MODEL_DIR = PROJECT_ROOT / "model"
 MODEL_CONFIG_DIR = PROJECT_ROOT / "config" / "models"
 TOKENIZER_MODEL = PROJECT_ROOT / "SAI" / "tokenizer.model"
-# Bàn thử nghiệm: thư mục run mà lệnh foundation_lab ghi ra (cùng mặc định với foundation_lab.paths.RUNS_DIR).
+# Phòng làm việc: thư mục run mà lệnh foundation_lab ghi ra (cùng mặc định với foundation_lab.paths.RUNS_DIR).
 RUNS_DIR = PROJECT_ROOT / "runs"

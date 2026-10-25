@@ -1,7 +1,45 @@
 {
+  "compare-kernel": {
+    "candidate": { "label": "Kernel ứng viên", "source": "registry:arch/attention_kernel", "initial": "eager", "help": "Mốc là attention_kernel trong config của từng model." },
+    "models": {
+      "label": "Mô hình",
+      "source": "models:SAI_modular",
+      "widget": "chips",
+      "initial": ["SAI_modular_35M", "SAI_modular_100M", "SAI_modular_375M"],
+      "help": "Đo trên shape attention (H, Hkv, D) của từng model đã chọn."
+    },
+    "batch_size": { "label": "Batch (B)", "min": 1, "width": "half" },
+    "seq_len": { "label": "Độ dài chuỗi (T)", "min": 1, "width": "half" },
+    "dtype": { "label": "Kiểu số", "widget": "segmented" },
+    "device": { "label": "Thiết bị", "widget": "segmented" },
+    "causal": { "label": "Causal mask" },
+    "repeats": { "label": "Số lần lặp", "min": 1, "help": "Thời gian là trung vị của các lần lặp.", "group": "advanced" }
+  },
+  "compare-objective": {
+    "candidate": { "label": "Objective ứng viên", "source": "registry:objectives/objective", "initial": "lm_ce", "help": "Đăng ký thêm vào OBJECTIVES để có lựa chọn khác." },
+    "experiments": {
+      "label": "Experiment",
+      "source": "experiments",
+      "widget": "chips",
+      "initial": ["SAI_35M", "SAI_100M", "SAI_375M"],
+      "help": "Đo trên cỡ head (d_model, vocab) của model trong từng experiment."
+    },
+    "candidate_chunk_size": { "label": "Chunk ứng viên", "min": 1, "help": "Trống: như loss_chunk_size của mốc." },
+    "stage": {
+      "label": "Stage làm mốc",
+      "source": "experiments",
+      "filter_by": "experiments",
+      "initial": "pretrain",
+      "help": "Lấy objective, loss_chunk_size và max_microbatch_tokens từ params của stage."
+    },
+    "tokens": { "label": "Số token (N)", "min": 1, "help": "Trống: max_microbatch_tokens của stage." },
+    "dtype": { "label": "Kiểu số", "widget": "segmented" },
+    "device": { "label": "Thiết bị", "widget": "segmented" },
+    "repeats": { "label": "Số lần lặp", "min": 1, "help": "Thời gian là trung vị của các lần lặp.", "group": "advanced" }
+  },
   "infer": {
-    "model": { "label": "Mô hình", "source": "checkpoints", "initial": "SAI_35M", "width": "half" },
-    "checkpoint": { "label": "Checkpoint", "source": "checkpoints", "filter_by": "model", "display": "basename", "initial": "model/sft1_35M.pt", "width": "half" },
+    "model": { "label": "Mô hình", "source": "checkpoints", "initial": "SAI_375M", "width": "half" },
+    "checkpoint": { "label": "Checkpoint", "source": "checkpoints", "filter_by": "model", "display": "basename", "initial": "model/sft1_375M.pt", "width": "half" },
     "device": { "label": "Thiết bị", "widget": "segmented" },
     "prompts": {
       "label": "Câu hỏi",
@@ -12,8 +50,9 @@
       "label": "Biến thể",
       "min_items": 1,
       "max_items": 4,
+      "baseline": true,
       "initial": [
-        { "name": "beam5", "generation": { "strategy": "beam", "beam_size": 5 } },
+        { "name": "default" },
         { "name": "sample", "generation": { "strategy": "sample", "temperature": 0.8, "top_p": 0.95, "seed": 0 } }
       ]
     },

@@ -2,7 +2,7 @@
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 
-export const LAB_GROUPS = ["Bắt đầu", "Kiến trúc lab"] as const;
+export const LAB_GROUPS = ["Tổng quan", "Bắt đầu"] as const;
 
 const lab = defineCollection({
   loader: glob({ pattern: "*.md", base: "./src/content/lab" }),

@@ -48,6 +48,33 @@
   --color-particle-4: 167 139 250;
   --color-particle-5: 196 181 253;
   --color-particle-6: 109 40 217;
+  /* Phòng làm việc Lab: bề mặt gần đặc và màu nhấn khác họ tím, để bảng và trạng thái nổi trên nền tím có hạt. */
+  --color-lab-panel: 27 20 48;
+  --color-lab-raised: 37 28 66;
+  --color-lab-inset: 18 12 34;
+  --color-lab-head: 44 34 80;
+  --color-lab-zebra: 32 24 58;
+  --color-lab-line: 58 47 94;
+  --color-lab-line-mid: 78 65 128;
+  --color-lab-line-strong: 139 124 200;
+  --color-lab-text-secondary: 211 206 238;
+  --color-lab-text-tertiary: 171 165 207;
+  --color-lab-focus: 253 230 138;
+  --color-lab-progress: 56 189 248;
+  --color-lab-best: 94 234 212;
+  --color-lab-series-1: 139 92 246;
+  --color-lab-info: 125 211 252;
+  --color-lab-info-bg: 16 48 74;
+  --color-lab-info-line: 43 106 146;
+  --color-lab-success: 134 239 172;
+  --color-lab-success-bg: 18 53 31;
+  --color-lab-success-line: 46 122 72;
+  --color-lab-warning: 252 211 77;
+  --color-lab-warning-bg: 58 44 12;
+  --color-lab-warning-line: 138 106 26;
+  --color-lab-danger: 252 165 165;
+  --color-lab-danger-bg: 61 21 32;
+  --color-lab-danger-line: 155 52 70;
 }
 
 @media (prefers-color-scheme: light) {
@@ -78,6 +105,32 @@
     --color-particle-4: 196 181 253;
     --color-particle-5: 139 92 246;
     --color-particle-6: 91 33 182;
+    --color-lab-panel: 255 255 255;
+    --color-lab-raised: 245 241 255;
+    --color-lab-inset: 255 255 255;
+    --color-lab-head: 238 232 255;
+    --color-lab-zebra: 250 248 255;
+    --color-lab-line: 220 211 242;
+    --color-lab-line-mid: 197 184 234;
+    --color-lab-line-strong: 138 117 201;
+    --color-lab-text-secondary: 63 47 92;
+    --color-lab-text-tertiary: 92 79 120;
+    --color-lab-focus: 2 132 199;
+    --color-lab-progress: 2 132 199;
+    --color-lab-best: 15 95 88;
+    --color-lab-series-1: 124 58 237;
+    --color-lab-info: 7 89 133;
+    --color-lab-info-bg: 224 242 254;
+    --color-lab-info-line: 124 196 236;
+    --color-lab-success: 20 83 45;
+    --color-lab-success-bg: 220 252 231;
+    --color-lab-success-line: 127 207 154;
+    --color-lab-warning: 113 63 18;
+    --color-lab-warning-bg: 254 243 199;
+    --color-lab-warning-line: 226 185 90;
+    --color-lab-danger: 127 29 29;
+    --color-lab-danger-bg: 254 226 226;
+    --color-lab-danger-line: 232 154 154;
   }
 }
 
@@ -108,6 +161,32 @@
   --color-particle-4: 196 181 253;
   --color-particle-5: 139 92 246;
   --color-particle-6: 91 33 182;
+  --color-lab-panel: 255 255 255;
+  --color-lab-raised: 245 241 255;
+  --color-lab-inset: 255 255 255;
+  --color-lab-head: 238 232 255;
+  --color-lab-zebra: 250 248 255;
+  --color-lab-line: 220 211 242;
+  --color-lab-line-mid: 197 184 234;
+  --color-lab-line-strong: 138 117 201;
+  --color-lab-text-secondary: 63 47 92;
+  --color-lab-text-tertiary: 92 79 120;
+  --color-lab-focus: 2 132 199;
+  --color-lab-progress: 2 132 199;
+  --color-lab-best: 15 95 88;
+  --color-lab-series-1: 124 58 237;
+  --color-lab-info: 7 89 133;
+  --color-lab-info-bg: 224 242 254;
+  --color-lab-info-line: 124 196 236;
+  --color-lab-success: 20 83 45;
+  --color-lab-success-bg: 220 252 231;
+  --color-lab-success-line: 127 207 154;
+  --color-lab-warning: 113 63 18;
+  --color-lab-warning-bg: 254 243 199;
+  --color-lab-warning-line: 226 185 90;
+  --color-lab-danger: 127 29 29;
+  --color-lab-danger-bg: 254 226 226;
+  --color-lab-danger-line: 232 154 154;
 }
 
 /* ===== Alpha, Color (ngữ nghĩa), Layout, Typography, Motion — dùng chung mọi theme ===== */
@@ -165,6 +244,43 @@
   --glow: 0 4px 28px rgb(var(--color-accent) / var(--alpha-32));
   --glow-hover: 0 8px 36px rgb(var(--color-accent) / var(--alpha-48));
 
+  /* ===== Component recipe (như web dev2): nền, viền, bóng của từng loại phần tử, dùng chung mọi trang ===== */
+  /* Ô nhập lớn: kính tím nhạt, sáng viền khi focus. */
+  --input-bg: linear-gradient(135deg, rgb(var(--color-accent) / var(--alpha-12)), rgb(var(--color-accent-deep) / var(--alpha-16))), var(--surface-raised);
+  --input-border: var(--border-highlight);
+  --input-shadow: var(--elevation-2);
+  --input-shadow-focus: var(--elevation-2), var(--glow);
+  /* Bong bóng chat: người dùng đậm, có gradient; mô hình nhạt. */
+  --bubble-user-bg: linear-gradient(135deg, rgb(var(--color-accent) / var(--alpha-16)), rgb(var(--color-accent-deep) / var(--alpha-24))), rgb(var(--color-surface-raised) / var(--alpha-32));
+  --bubble-user-border: var(--border-strong);
+  --bubble-ai-bg: var(--fill-accent-subtle);
+  --bubble-ai-border: var(--border-default);
+  --bubble-shadow: var(--elevation-1);
+  /* Nút điều khiển có viền (nút icon trong ứng dụng, chọn mô hình). */
+  --control-bg: rgb(var(--color-surface-raised) / var(--alpha-64));
+  --control-border: var(--border-strong);
+  --control-color: var(--text-secondary);
+  --control-bg-hover: var(--fill-accent-active);
+  --control-border-hover: var(--border-focus);
+  /* Lớp nổi: thanh bên, dropdown, menu mobile. */
+  --overlay-bg: var(--surface-overlay);
+  --overlay-border: var(--border-strong);
+  --overlay-shadow: var(--elevation-3);
+  /* Bảng (bảng mô hình, bảng trong tài liệu, bảng tham số /try/), theo bảng kiến trúc của web dev2. Hover chỉ bảng
+     nào cần mới dùng: nền sáng lên cùng viền sáng trên và viền tím dưới mỗi ô. */
+  --table-bg: var(--surface-base);
+  --table-border: rgb(var(--color-accent) / var(--alpha-24));
+  --table-shadow: 0 4px 24px rgb(var(--color-accent) / var(--alpha-04));
+  --table-head-bg: var(--fill-accent-muted);
+  --table-head-border: rgb(var(--color-accent) / var(--alpha-16));
+  --table-head-label: rgb(var(--color-text-accent) / var(--alpha-48));
+  --table-row-border: rgb(var(--color-accent) / var(--alpha-08));
+  --table-total-bg: var(--fill-accent-subtle);
+  --table-hover-bg: var(--fill-accent-subtle);
+  --table-hover-shadow: inset 0 1px 0 rgb(var(--color-accent-soft) / var(--alpha-08)), inset 0 -1px 0 rgb(var(--color-accent) / var(--alpha-08));
+  /* Nhãn nhỏ đi kèm nội dung, vd. tên mô hình trên câu trả lời. */
+  --text-label: rgb(var(--color-text-accent) / var(--alpha-64));
+
   --orb-1: rgb(var(--color-accent-deep) / var(--alpha-24));
   --orb-2: rgb(var(--color-accent) / var(--alpha-16));
   --orb-3: rgb(var(--color-accent-pale) / var(--alpha-08));
@@ -180,9 +296,59 @@
   --code-text: rgb(var(--color-on-accent) / var(--alpha-88));
   --code-muted: rgb(var(--color-on-accent) / var(--alpha-64));
 
+  /* Phòng làm việc Lab (styles/lab.css). Khung lớn là kính dày: nền 88% + blur mạnh + nhiễu nhám, nên hạt phía sau
+     chỉ còn vệt nhoè; mọi thứ bên trong khung dùng màu đặc để giữ tương phản chữ. */
+  --lab-surface-panel: rgb(var(--color-lab-panel) / var(--alpha-88));
+  --lab-sheen: linear-gradient(180deg, rgb(var(--color-highlight) / var(--alpha-04)), transparent 120px);
+  /* Nhiễu xám 50%, alpha 0.06: làm sáng nhẹ nền tối và tối nhẹ nền sáng, dùng được cho cả hai theme. */
+  --lab-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --lab-surface-raised: rgb(var(--color-lab-raised));
+  --lab-surface-inset: rgb(var(--color-lab-inset));
+  --lab-surface-head: rgb(var(--color-lab-head));
+  --lab-surface-zebra: rgb(var(--color-lab-zebra));
+  --lab-border: rgb(var(--color-lab-line));
+  --lab-border-mid: rgb(var(--color-lab-line-mid));
+  --lab-border-strong: rgb(var(--color-lab-line-strong));
+  --lab-border-focus: rgb(var(--color-lab-focus));
+  --lab-text-secondary: rgb(var(--color-lab-text-secondary));
+  --lab-text-tertiary: rgb(var(--color-lab-text-tertiary));
+  /* Nút chính: gradient thương hiệu như --gradient-brand nhưng đặc. */
+  --lab-fill-primary: linear-gradient(135deg, rgb(var(--color-accent-deep)), rgb(var(--color-accent)));
+  --lab-fill-progress: rgb(var(--color-lab-progress));
+  --lab-text-best: rgb(var(--color-lab-best));
+  --lab-glow-best: 0 0 14px rgb(var(--color-lab-best) / var(--alpha-32));
+  /* Nét và thanh của biểu đồ: mốc màu chữ phụ (trung tính), chuỗi 1 tím. Đã kiểm bằng validate_palette (skill dataviz)
+     trên nền panel tối #1b1430 và sáng #ffffff: tương phản ≥ 3:1. Chỉ dùng cho nét, thanh, chấm; không tô mảng. */
+  --lab-series-base: rgb(var(--color-lab-text-tertiary));
+  --lab-series-1: rgb(var(--color-lab-series-1));
+  --lab-text-info: rgb(var(--color-lab-info));
+  --lab-fill-info: rgb(var(--color-lab-info-bg));
+  --lab-border-info: rgb(var(--color-lab-info-line));
+  --lab-text-success: rgb(var(--color-lab-success));
+  --lab-fill-success: rgb(var(--color-lab-success-bg));
+  --lab-border-success: rgb(var(--color-lab-success-line));
+  --lab-text-warning: rgb(var(--color-lab-warning));
+  --lab-fill-warning: rgb(var(--color-lab-warning-bg));
+  --lab-border-warning: rgb(var(--color-lab-warning-line));
+  --lab-text-danger: rgb(var(--color-lab-danger));
+  --lab-fill-danger: rgb(var(--color-lab-danger-bg));
+  --lab-border-danger: rgb(var(--color-lab-danger-line));
+
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px;
   --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px; --space-20: 80px; --space-24: 96px;
-  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px; --radius-pill: 999px;
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px; --radius-2xl: 28px; --radius-pill: 999px;
+  /* Bo góc theo vai trò (như recipe của web dev2): component chỉ dùng các token này, không lấy thẳng thang radius,
+     để trang mới cùng loại phần tử thì cùng độ bo. Hình tròn (avatar, chấm) dùng 50% vì là hình học, không phải vai trò. */
+  --radius-control: var(--radius-pill);   /* nút, badge, tab, nút icon, navbar */
+  --radius-field: var(--radius-2xl);      /* ô nhập lớn (composer): cao ~54px nên 28px là gần tròn hai đầu */
+  --radius-card: var(--radius-lg);        /* thẻ, trích dẫn, lưu ý, bảng, khối code */
+  --radius-panel: var(--radius-xl);       /* lớp nổi lớn: thanh bên, menu mobile, khung chat mẫu */
+  --radius-menu: var(--radius-md);        /* dropdown */
+  --radius-chip: var(--radius-md);        /* ô vuông chứa icon */
+  --radius-item: var(--radius-sm);        /* mục trong danh sách, menu */
+  --radius-inline: var(--radius-xs);      /* code trong dòng, nhãn nhỏ */
+  --radius-bubble: var(--radius-lg);      /* bong bóng chat; góc phía người nói dùng --radius-bubble-tail */
+  --radius-bubble-tail: var(--radius-xs);
   --blur-content: 6px; --blur-control: 12px; --blur-panel: 20px; --blur-elevated: 24px; --blur-island: 28px; --blur-orb: 90px;
   --size-nav-height: 44px; --size-content-max: 1120px; --size-prose-max: 720px; --size-chat-max: 760px; --size-sidebar: 200px; --size-lab-max: 1600px;
 

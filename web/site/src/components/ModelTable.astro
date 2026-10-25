@@ -1,60 +1,94 @@
 ---
-// ModelTable trên Figma: so sánh các mô hình đã phát hành (models.json), nhấn mô hình lớn nhất.
+// ModelTable theo bảng kiến trúc của web dev2: so sánh các mô hình đã phát hành (models.json), tên tham số là tên field
+// trong config, số liệu chữ serif, chấm màu đậm dần theo cỡ, rê chuột vào cột nào thì cả cột sáng lên.
+// Màu nền, viền, hover lấy từ recipe --table-* trong tokens.css.
 import Badge from "./Badge.astro";
-import Button from "./Button.astro";
+import Icon from "./Icon.astro";
 import models from "../data/models.json";
 
+type Model = (typeof models)[number];
 const largest = models.at(-1)!.name;
 const number = (value: number) => value.toLocaleString("vi-VN");
-const rows: { label: string; value: (model: (typeof models)[number]) => string }[] = [
-  { label: "d_model", value: m => number(m.d_model) },
-  { label: "Attention heads", value: m => number(m.num_heads) },
-  { label: "KV heads (GQA)", value: m => number(m.num_kv_heads) },
-  { label: "Layers", value: m => number(m.num_layers) },
-  { label: "FFN dimension", value: m => number(m.ff_dim) },
-  { label: "Context", value: m => number(m.max_seq_len) },
+const rows: { field: keyof Model; value: (model: Model) => string }[] = [
+  { field: "d_model", value: m => number(m.d_model) },
+  { field: "num_heads", value: m => number(m.num_heads) },
+  { field: "num_kv_heads", value: m => number(m.num_kv_heads) },
+  { field: "num_layers", value: m => number(m.num_layers) },
+  { field: "ff_dim", value: m => number(m.ff_dim) },
+  { field: "max_seq_len", value: m => number(m.max_seq_len) },
 ];
+// Chấm đầu cột như dev2: mô hình nhỏ nhất nhạt, lớn nhất tím sáng có quầng, ở giữa tím đặc có quầng.
+const dotTier = (index: number) => (index === 0 ? "faint" : index === models.length - 1 ? "soft" : "solid");
+// Rê chuột vào một ô của cột mô hình thì cả cột sáng lên. Cột 1 là tên tham số nên các cột mô hình bắt đầu từ 2;
+// số cột theo models.json nên quy tắc được sinh lúc build.
+const COLUMN_OFFSET = 2;
+const hoverCss = models.map((_, index) => {
+  const column = index + COLUMN_OFFSET;
+  return `.model-table:has(:is(th, td):nth-child(${column}):hover) :is(th, td):nth-child(${column}) { background: var(--table-hover-bg); box-shadow: var(--table-hover-shadow); }`;
+}).join("\n");
 ---
 <div class="table-wrap glass-panel">
-  <table>
+  <table class="model-table">
     <caption class="sr-only">So sánh các cỡ mô hình SAI</caption>
     <thead>
       <tr>
         <th scope="col">Tham số</th>
-        {models.map(model => (
-          <th scope="col" class:list={{ "is-highlight": model.name === largest }}>
-            SAI {model.label}{model.name === largest && <Badge>mạnh nhất</Badge>}
+        {models.map((model, index) => (
+          <th scope="col">
+            <span class="model-head">
+              <i class:list={["dot", `dot-${dotTier(index)}`]} aria-hidden="true"></i>
+              <a href={model.url} target="_blank" rel="noopener">SAI {model.label}<Icon name="external" size={12} /></a>
+              {model.name === largest && <Badge>mạnh nhất</Badge>}
+            </span>
           </th>
         ))}
       </tr>
     </thead>
     <tbody>
       {rows.map(row => (
-        <tr><th scope="row">{row.label}</th>{models.map(model => <td class:list={{ "is-highlight": model.name === largest }}>{row.value(model)}</td>)}</tr>
+        <tr>
+          <th scope="row"><code>{row.field}</code></th>
+          {models.map((model, index) => <td class:list={["value", { "is-first": index === 0 }]}>{row.value(model)}</td>)}
+        </tr>
       ))}
-      <tr class="total"><th scope="row">Tổng tham số</th>{models.map(model => <td class:list={{ "is-highlight": model.name === largest }}><span class="stat">{model.label}</span></td>)}</tr>
-      <tr><th scope="row">Trọng số</th>{models.map(model => <td class:list={{ "is-highlight": model.name === largest }}><Button size="sm" trailingIcon="external" href={model.url} external>{model.name}</Button></td>)}</tr>
+      <tr class="total">
+        <th scope="row"><span class="total-label"><Icon name="layers" />Tổng tham số</span></th>
+        {models.map((model, index) => <td class:list={["value", { "is-first": index === 0 }]}>{model.label}</td>)}
+      </tr>
     </tbody>
   </table>
 </div>
 <p class="t-caption hint">Vuốt ngang để xem đủ các mô hình.</p>
 
+<style is:inline set:html={hoverCss}></style>
 <style>
-  .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); }
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-card); border: 1px solid var(--table-border); background: var(--table-bg); box-shadow: var(--table-shadow); }
   table { width: 100%; min-width: 760px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  th, td { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-subtle); text-align: center; }
+  th, td { padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--table-row-border); text-align: center; transition: background-color var(--duration-base), box-shadow var(--duration-base); }
   tr:last-child > * { border-bottom: 0; }
-  thead th { background: var(--fill-accent-subtle); font: 600 15px/1.4 var(--font-sans); }
-  thead th :global(.badge) { margin-left: var(--space-2); }
-  thead th:first-child { font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
-  /* Cột tên tham số dính trái khi cuộn ngang trên mobile. */
-  tbody th, thead th:first-child { position: sticky; left: 0; text-align: left; background: var(--surface-page); }
-  tbody th { font: 400 12px/1.6 var(--font-mono); color: var(--text-accent); }
-  .total th { font: 500 13px/1.4 var(--font-sans); color: var(--text-secondary); }
-  /* Ô dính trái cần nền đặc (để che nội dung cuộn bên dưới) nhưng vẫn cùng tông với hàng của nó. */
-  thead th:first-child, .total th { background: linear-gradient(var(--fill-accent-subtle), var(--fill-accent-subtle)), var(--surface-page); }
-  .is-highlight, .total td { background: var(--fill-accent-subtle); }
-  .stat { font: 700 28px/1.2 var(--font-display); background: var(--gradient-logo); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  tbody th { text-align: left; }
+  thead th { background: var(--table-head-bg); border-bottom-color: var(--table-head-border); font: 600 14px/1.4 var(--font-sans); color: var(--text-primary); }
+  thead th:first-child { text-align: left; font: 500 12px/1.4 var(--font-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--table-head-label); }
+  .model-head { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .model-head a { display: inline-flex; align-items: center; gap: var(--space-1); color: inherit; text-decoration: none; }
+  .model-head a:hover { color: var(--text-accent); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-faint { background: rgb(var(--color-accent) / var(--alpha-32)); }
+  .dot-solid { background: rgb(var(--color-accent)); box-shadow: 0 0 8px rgb(var(--color-accent) / var(--alpha-48)); }
+  .dot-soft { background: rgb(var(--color-accent-soft)); box-shadow: 0 0 8px rgb(var(--color-accent-soft) / var(--alpha-48)); }
+  /* Số liệu chữ serif như dev2: cột mô hình nhỏ nhất tím nhạt, các cột còn lại màu chữ chính. */
+  .value { font: 600 20px/1.2 var(--font-display); color: var(--text-primary); }
+  .value.is-first { color: rgb(var(--color-accent-pale)); }
+  .total > * { background: var(--table-total-bg); }
+  .total .value { font-size: 22px; font-weight: 700; }
+  .total-label { display: inline-flex; align-items: center; gap: var(--space-2); font: 500 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+  .total-label :global(.icon) { color: var(--text-accent); }
   .hint { display: none; margin: var(--space-2) 0 0; }
-  @media (max-width: 900px) { .hint { display: block; } }
+  /* Màn hẹp: bảng cuộn ngang nên cột tên tham số dính trái; ô dính cần nền đặc để che phần cuộn bên dưới. */
+  @media (max-width: 900px) {
+    .hint { display: block; }
+    tbody th, thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-page); }
+    thead th:first-child { background: linear-gradient(var(--table-head-bg), var(--table-head-bg)), var(--surface-page); }
+    .total th { background: linear-gradient(var(--table-total-bg), var(--table-total-bg)), var(--surface-page); }
+  }
 </style>

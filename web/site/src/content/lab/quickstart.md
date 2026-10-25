@@ -2,7 +2,7 @@
 title: Quickstart
 description: Cài lab, xem các phòng ban, chuẩn bị dữ liệu và chạy experiment đầu tiên.
 group: Bắt đầu
-order: 1
+order: 17
 ---
 
 ## Cài đặt
@@ -38,9 +38,9 @@ Văn bản được chuyển về chữ thường trước khi encode, khớp v�
 
 ```bash
 python -m foundation_lab encode pretrain --input data/raw/pretrain_data_*.jsonl \
-    --output-dir data/processed --manifest pretrain_manifest.json --model SAI_35M
+    --output-dir data/processed --manifest pretrain_manifest.json --model SAI_375M
 python -m foundation_lab encode sft --input data/raw/SFT_1.json \
-    --output data/processed/SFT1_data_ids.npz --model SAI_35M
+    --output data/processed/SFT1_data_ids.npz --model SAI_375M
 ```
 
 `--model` chỉ dùng để lấy độ dài context tối đa (`max_seq_len`) khi cắt văn bản dài. Đường dẫn dữ liệu mà mỗi stage đọc nằm trong `foundation_lab/data/configs/*.yaml`; đặt file đúng chỗ đó hoặc sửa config.
@@ -50,19 +50,20 @@ python -m foundation_lab encode sft --input data/raw/SFT_1.json \
 Luôn chạy `validate` trước: lệnh này resolve toàn bộ config và báo lỗi trước khi nạp dữ liệu hay dựng model.
 
 ```bash
-python -m foundation_lab validate foundation_lab/core/configs/SAI_35M.yaml
-python -m foundation_lab run foundation_lab/core/configs/SAI_35M.yaml
+python -m foundation_lab validate foundation_lab/core/configs/SAI_375M.yaml
+python -m foundation_lab run foundation_lab/core/configs/SAI_375M.yaml
 ```
 
 Lab tự chọn thiết bị theo thứ tự CUDA, Apple MPS rồi CPU (`runtime.device: auto`). Nếu `torch.compile` gặp lỗi trên máy của bạn, tắt nó khi chạy:
 
 ```bash
-python -m foundation_lab run foundation_lab/core/configs/SAI_35M.yaml --set runtime.compile=false
+python -m foundation_lab run foundation_lab/core/configs/SAI_375M.yaml --set runtime.compile=false
 ```
 
 > Để thử nhanh toàn bộ pipeline, dùng một tập dữ liệu nhỏ và giảm số epoch của các stage SFT, ví dụ `--set pipeline.sft1.params.epochs=1 --set pipeline.sft2.params.epochs=1`.
 
 ## Tiếp theo
 
-- [Experiments](../experiments/): cấu trúc file experiment, pipeline nhiều stage, thư mục run.
+- [Thư mục run](../runs/): xem run vừa chạy ghi lại những gì, và chạy tiếp khi bị ngắt.
+- [Dòng lệnh](../cli/): các lệnh khác như `infer`, `compare-kernel`, `train-tokenizer`.
 - [Mở rộng lab](../extending/): thêm kernel, layer, loss hay recipe mới.

@@ -1,5 +1,7 @@
 ---
 // Trang tài liệu Lab: sidebar | bài viết | mục lục. Trên mobile sidebar thu thành nút "Mục lục tài liệu".
+// Cột sidebar mang cùng transition:name với cột sidebar của WorkbenchPage: khi chuyển trang bằng ClientRouter
+// (BaseLayout) nó đứng yên, không mờ dần như phần còn lại; vị trí cuộn do LabSidebar giữ.
 import type { MarkdownHeading } from "astro";
 import BaseLayout from "./BaseLayout.astro";
 import Icon from "../components/Icon.astro";
@@ -23,7 +25,7 @@ const next = docs[index + 1];
 ---
 <BaseLayout title={`${doc.data.title} · Foundation Lab`} description={doc.data.description} current="lab">
   <div class="doc-layout">
-    <aside class="side"><LabSidebar docs={docs} currentId={doc.id} /></aside>
+    <aside class="side" data-lab-side transition:name="lab-sidebar" transition:animate="none"><LabSidebar docs={docs} currentId={doc.id} /></aside>
     <article class="article">
       <Breadcrumb items={[{ label: "Foundation Lab", href: url("/lab/") }, { label: doc.data.group }, { label: doc.data.title }]} />
       <LabMobileNav docs={docs} currentId={doc.id} />
@@ -43,7 +45,7 @@ const next = docs[index + 1];
 </BaseLayout>
 
 <style>
-  /* Cùng khung với Bàn làm việc (styles/lab.css, .wb): sidebar Lab đứng yên khi chuyển giữa hai loại trang. */
+  /* Cùng khung với Phòng làm việc (styles/lab.css, .wb): sidebar Lab đứng yên khi chuyển giữa hai loại trang. */
   .doc-layout { max-width: var(--size-lab-max); margin-inline: auto; display: grid; grid-template-columns: var(--size-sidebar) minmax(0, 1fr) 200px; gap: var(--space-5); padding: calc(var(--space-24) + 16px) max(16px, env(safe-area-inset-right, 0px)) var(--space-16) max(16px, env(safe-area-inset-left, 0px)); }
   .side, .toc-column { position: sticky; top: 88px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; }
   .side { padding-right: var(--space-3); border-right: 1px solid var(--border-subtle); }
@@ -53,7 +55,7 @@ const next = docs[index + 1];
   .doc-header { display: flex; flex-direction: column; gap: var(--space-4); }
   .doc-header h1, .doc-header p { margin: 0; }
   .pager { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-top: var(--space-10); }
-  .pager a { display: flex; flex-direction: column; gap: 2px; padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); text-decoration: none; }
+  .pager a { display: flex; flex-direction: column; gap: 2px; padding: var(--space-4) var(--space-5); border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--surface-base); text-decoration: none; }
   .pager a:hover { border-color: var(--border-strong); }
   .pager .next { grid-column: 2; text-align: right; }
   .edit { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 13px; color: var(--text-tertiary); text-decoration: none; }
@@ -67,20 +69,20 @@ const next = docs[index + 1];
   .prose :global(:is(ul, ol)) { padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--space-2); }
   .prose :global(a) { color: var(--text-accent); }
   .prose :global(strong) { color: var(--text-primary); font-weight: 600; }
-  .prose :global(pre) { border-radius: var(--radius-lg); border: 1px solid var(--border-default); }
-  .prose :global(table) { display: block; overflow-x: auto; border-collapse: collapse; border: 1px solid var(--border-default); border-radius: var(--radius-lg); font-size: 13px; }
+  .prose :global(pre) { border-radius: var(--radius-card); border: 1px solid var(--border-default); }
+  .prose :global(table) { display: block; overflow-x: auto; border-collapse: collapse; border: 1px solid var(--table-border); border-radius: var(--radius-card); background: var(--table-bg); box-shadow: var(--table-shadow); font-size: 13px; }
   /* Ô có bề rộng tối thiểu để bảng cuộn ngang trên mobile thay vì bóp chữ thành nhiều dòng. */
-  .prose :global(:is(th, td)) { min-width: 120px; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
+  .prose :global(:is(th, td)) { min-width: 120px; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--table-row-border); text-align: left; vertical-align: top; }
   /* Đường dẫn dài trong code inline được ngắt dòng để không tràn khỏi cột. */
   .prose :global(:not(pre) > code) { overflow-wrap: anywhere; }
   /* Trong bảng thì giữ nguyên tên (vd. ATTENTION_KERNELS); bảng cuộn ngang thay vì cắt giữa tên. */
   .prose :global(td code) { overflow-wrap: normal; white-space: nowrap; }
-  .prose :global(th) { background: var(--fill-accent-subtle); font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
+  .prose :global(th) { background: var(--table-head-bg); border-bottom-color: var(--table-head-border); font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--table-head-label); }
   .prose :global(tr:last-child td) { border-bottom: 0; }
   /* Blockquote trong tài liệu là khối lưu ý (Notice, tone info). */
-  .prose :global(blockquote) { padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); color: var(--text-secondary); font-size: 14px; }
+  .prose :global(blockquote) { padding: var(--space-4) var(--space-5); border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); color: var(--text-secondary); font-size: 14px; }
 
-  /* Cùng mốc với Bàn làm việc: dưới 1180 sidebar thu thành nút "Mục lục tài liệu". */
+  /* Cùng mốc với Phòng làm việc: dưới 1180 sidebar thu thành nút "Mục lục tài liệu". */
   @media (max-width: 1179px) {
     .doc-layout { grid-template-columns: minmax(0, 1fr); }
     .side, .toc-column { display: none; }

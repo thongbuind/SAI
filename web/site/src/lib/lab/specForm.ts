@@ -5,6 +5,7 @@
 // Mọi ô phát sự kiện "input"/"change" nổi bọt (ô tự dựng phát thủ công), nên khối cha chỉ cần nghe hai sự kiện
 // này để cập nhật tóm tắt, số tham số nâng cao đã đổi và các ô ẩn/hiện.
 import type { Description, FieldSchema, ObjectSchema } from "./labApi";
+import { baselineBadge } from "./resultView";
 import { listItemYaml, withoutDefaults } from "./specYaml";
 import { copyToClipboard, iconSvg } from "../chatRender";
 
@@ -13,14 +14,18 @@ export interface FieldHint {
   help?: string;
   hidden?: boolean;
   // "checkpoints": model đang có trọng số (khoá của "checkpoints" trong describe), hoặc trọng số của model chọn ở
-  // khoá anh em "filter_by"; "registry:<phòng>/<kind>": tên đã đăng ký trong registry.
+  // khoá anh em "filter_by"; "experiments": tên experiment, hoặc các stage có ở mọi experiment chọn ở khoá anh em
+  // "filter_by"; "registry:<phòng>/<kind>": tên đã đăng ký trong registry; "models:<họ>": tên model thuộc họ đó
+  // ("model_families" trong describe).
   source?: string;
-  // Lựa chọn phụ thuộc khoá anh em này (vd. checkpoint theo model): đổi khoá đó thì nạp lại danh sách.
+  // Lựa chọn phụ thuộc khoá anh em này (vd. checkpoint theo model, stage theo experiment): đổi khoá đó thì nạp lại
+  // danh sách.
   filter_by?: string;
   // "basename": hiện tên file không đường dẫn, không đuôi (giá trị gửi đi vẫn là đường dẫn đầy đủ).
   display?: "basename";
   choices?: (string | number | boolean)[];
-  widget?: "lines" | "segmented" | "slider";
+  // "chips": chọn nhiều trong các lựa chọn (của "source" hoặc "choices"), mỗi lựa chọn một chip bật/tắt.
+  widget?: "lines" | "segmented" | "slider" | "chips";
   min?: number;
   max?: number;
   // Chỉ dùng cho slider: bước kéo.
@@ -37,6 +42,9 @@ export interface FieldHint {
   width?: "half";
   // Object lồng: trải các khoá ra ngay trong object cha thay vì đóng khung riêng.
   inline?: boolean;
+  // Danh sách object: mục có mọi khoá (trừ "name") bằng mặc định của schema là mốc, tức cấu hình mặc định hiện
+  // tại mà lab bắt buộc có để so. Mục mốc mang nhãn "mốc", mục mốc cuối cùng không xoá được.
+  baseline?: boolean;
 }
 export type FieldHints = Record<string, FieldHint>;
 
@@ -57,6 +65,8 @@ export interface Control {
 const LINE_CHIP_CHARS = 28;
 // Danh sách dài (benchmark) chỉ hiện vài chip đầu, phần còn lại gom thành "+N câu".
 const LINE_CHIPS_SHOWN = 6;
+// Khoá tên của mục trong danh sách object; không tính khi xét mục có phải mốc không.
+const NAME_KEY = "name";
 let controlCount = 0;
 const nextId = () => `lab-field-${++controlCount}`;
 
@@ -88,6 +98,9 @@ function safeRead(control: Control): unknown {
 
 function sourceValues(source: string, description: Description): string[] {
   if (source === "checkpoints") return Object.keys(description.checkpoints);
+  if (source === "experiments") return Object.keys(description.experiments);
+  const family = /^models:(\w+)$/.exec(source);
+  if (family) return description.models.filter(name => description.model_families[name] === family[1]);
   const match = /^registry:(\w+)\/(\w+)$/.exec(source);
   const registry = match && description.departments[match[1]]?.find(item => item.kind === match[2]);
   if (!registry) throw new Error(`lab_fields.json: nguồn "${source}" không có trong describe`);
@@ -96,8 +109,13 @@ function sourceValues(source: string, description: Description): string[] {
 
 // Lựa chọn của khoá có "filter_by", theo giá trị đang chọn ở khoá anh em.
 function filteredValues(source: string, description: Description, siblingValue: unknown): string[] {
-  if (source !== "checkpoints") throw new Error(`lab_fields.json: "filter_by" chỉ dùng với nguồn "checkpoints", nhận "${source}"`);
-  return description.checkpoints[String(siblingValue)] ?? [];
+  if (source === "checkpoints") return description.checkpoints[String(siblingValue)] ?? [];
+  if (source === "experiments") {
+    // Khoá anh em chọn nhiều experiment (chip): chỉ giữ stage có ở mọi experiment đang chọn, theo thứ tự pipeline.
+    const stageLists = (Array.isArray(siblingValue) ? siblingValue : []).map(name => description.experiments[String(name)] ?? []);
+    return stageLists.length === 0 ? [] : stageLists[0].filter(stage => stageLists.every(stages => stages.includes(stage)));
+  }
+  throw new Error(`lab_fields.json: "filter_by" chỉ dùng với nguồn "checkpoints" hoặc "experiments", nhận "${source}"`);
 }
 
 const basename = (path: string) => path.split("/").at(-1)!.replace(/\.[^.]+$/, "");
@@ -167,6 +185,36 @@ function segmentedControl(values: (string | number | boolean)[], initial: unknow
   });
   render();
   return { element: group, read: () => selected };
+}
+
+// Chọn nhiều: mỗi lựa chọn một chip bật/tắt; đọc ra các giá trị đang bật theo thứ tự của danh sách lựa chọn.
+function chipsControl(values: (string | number | boolean)[], initial: unknown, label: string): Control {
+  const group = document.createElement("div");
+  group.className = "lab-toggles";
+  group.setAttribute("role", "group");
+  const selected = new Set(Array.isArray(initial) ? initial : []);
+  for (const value of values) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "lab-toggle";
+    chip.textContent = String(value);
+    chip.setAttribute("aria-pressed", String(selected.has(value)));
+    chip.addEventListener("click", () => {
+      if (selected.has(value)) selected.delete(value);
+      else selected.add(value);
+      chip.setAttribute("aria-pressed", String(selected.has(value)));
+      notifyChange(group);
+    });
+    group.append(chip);
+  }
+  return {
+    element: group,
+    read() {
+      const chosen = values.filter(value => selected.has(value));
+      if (chosen.length === 0) throw new FormError(`${label}: chọn ít nhất một`);
+      return chosen;
+    },
+  };
 }
 
 function sliderControl(id: string, schema: FieldSchema, hint: FieldHint, initial: unknown): Control {
@@ -332,17 +380,32 @@ function listOfObjectsControl(path: string, schema: ObjectSchema, hint: FieldHin
     }
   }
 
+  // Mục mốc: mọi khoá trừ tên bằng mặc định của schema (xem FieldHint.baseline). Mục đang nhập dở không phải mốc.
+  function isBaseline(item: Item): boolean {
+    const value = safeRead(item.body);
+    if (!hint.baseline || typeof value !== "object" || value === null) return false;
+    const settings = Object.fromEntries(Object.entries(value).filter(([key]) => key !== NAME_KEY));
+    return Object.keys(withoutDefaults(settings, schema)).length === 0;
+  }
+
   function renderSummary(item: Item) {
     const [title = "", ...rest] = item.body.summary!();
     item.title.textContent = title;
+    if (isBaseline(item)) item.title.append(baselineBadge());
     item.detail.textContent = rest.join(" · ");
   }
 
   function refresh() {
     count.textContent = `${items.length}/${maxItems === Infinity ? "∞" : maxItems}`;
     addButton.disabled = items.length >= maxItems;
+    const baselines = items.filter(isBaseline).length;
     for (const item of items) {
-      item.remove.disabled = items.length <= minItems;
+      // Xoá mục mốc cuối cùng thì lab từ chối spec, vì không còn cấu hình mặc định để so.
+      const lastBaseline = baselines === 1 && isBaseline(item);
+      item.remove.disabled = items.length <= minItems || lastBaseline;
+      const removeLabel = lastBaseline ? "Mục mốc cuối cùng, không xoá được" : "Xoá";
+      item.remove.setAttribute("aria-label", removeLabel);
+      item.remove.title = removeLabel;
       item.duplicate.disabled = items.length >= maxItems;
     }
   }
@@ -403,6 +466,7 @@ function listOfObjectsControl(path: string, schema: ObjectSchema, hint: FieldHin
       body.element.addEventListener(kind, () => {
         renderSummary(item);
         renderYaml(item);
+        refresh();
       });
     }
     duplicate.addEventListener("click", () => {
@@ -435,7 +499,16 @@ function listOfObjectsControl(path: string, schema: ObjectSchema, hint: FieldHin
   for (const value of Array.isArray(initial) ? initial : []) addItem(value as Record<string, unknown>);
   addButton.addEventListener("click", () => setOpen(addItem({ name: uniqueName("bien_the") }), true));
   refresh();
-  return { element: container, read: () => items.map(item => item.body.read()) };
+  return {
+    element: container,
+    read() {
+      const values = items.map(item => item.body.read());
+      if (hint.baseline && !items.some(isBaseline)) {
+        throw new FormError(`${label}: cần một mục giữ nguyên cấu hình mặc định để làm mốc`);
+      }
+      return values;
+    },
+  };
 }
 
 function fieldControl(path: string, schema: FieldSchema, hints: FieldHints, description: Description, initial: unknown, advanced: AdvancedGroup): Control {
@@ -445,6 +518,7 @@ function fieldControl(path: string, schema: FieldSchema, hints: FieldHints, desc
   // Khoá có "filter_by" bắt đầu rỗng; objectControl nạp lựa chọn khi đã có ô của khoá anh em.
   const values = hint.filter_by ? [] : hint.source ? sourceValues(hint.source, description) : hint.choices ?? (schema.type === "choice" ? schema.values : null);
   if (values) {
+    if (hint.widget === "chips") return chipsControl(values, initial, label);
     return hint.widget === "segmented" ? segmentedControl(values, initial) : selectControl(id, values, initial, hint, label);
   }
   switch (schema.type) {

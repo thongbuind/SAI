@@ -17,7 +17,7 @@ const { tone = "info", title } = Astro.props;
 </div>
 
 <style>
-  .notice { display: flex; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); color: var(--text-accent); backdrop-filter: blur(var(--blur-content)); -webkit-backdrop-filter: blur(var(--blur-content)); }
+  .notice { display: flex; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--fill-accent-subtle); color: var(--text-accent); backdrop-filter: blur(var(--blur-content)); -webkit-backdrop-filter: blur(var(--blur-content)); }
   .notice-warning { border-color: var(--border-warning); background: var(--fill-warning-subtle); color: var(--text-warning); }
   .notice-danger { border-color: var(--border-danger); background: var(--fill-danger-subtle); color: var(--text-danger); }
   .notice :global(.icon) { margin-top: 1px; }

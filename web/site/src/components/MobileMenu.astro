@@ -1,5 +1,6 @@
 ---
 // MobileMenu trên Figma: mở từ nút menu của NavIsland, đóng bằng nút đóng, lớp nền mờ hoặc phím Esc.
+// transition:persist: như NavIsland, giữ nguyên menu khi trang Lab chuyển trang bằng ClientRouter.
 import Icon from "./Icon.astro";
 import Button from "./Button.astro";
 import ThemeToggle from "./ThemeToggle.astro";
@@ -11,11 +12,11 @@ interface Props {
 }
 const { current } = Astro.props;
 ---
-<div class="scrim" data-menu-scrim hidden></div>
-<div class="mobile-menu glass-elevated" id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" hidden>
+<div class="scrim" data-menu-scrim hidden transition:persist="menu-scrim"></div>
+<div class="mobile-menu glass-elevated anim-pop-in" id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" hidden transition:persist="mobile-menu">
   <div class="menu-head">
     <span class="t-logo">SAI</span>
-    <button class="menu-close" type="button" data-menu-close aria-label="Đóng menu"><Icon name="close" /></button>
+    <button class="icon-btn" type="button" data-menu-close aria-label="Đóng menu"><Icon name="close" /></button>
   </div>
   {NAV_LINKS.map(link => (
     <a class="menu-item" href={url(link.path)} aria-current={link.key === current ? "page" : undefined} data-menu-link>{link.label}</a>
@@ -30,16 +31,13 @@ const { current } = Astro.props;
 
 <style>
   .scrim { position: fixed; inset: 0; z-index: 55; background: rgb(var(--color-surface-elevated) / var(--alpha-64)); }
-  .mobile-menu { position: fixed; z-index: 60; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-xl); background: var(--surface-overlay); border: 1px solid var(--border-default); box-shadow: var(--elevation-3); animation: menu-in var(--duration-base) var(--easing-out) both; }
+  .mobile-menu { position: fixed; z-index: 60; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-panel); background: var(--overlay-bg); border: 1px solid var(--overlay-border); box-shadow: var(--overlay-shadow); --pop-offset: -8px; }
   .menu-head { display: flex; align-items: center; justify-content: space-between; padding-left: var(--space-2); }
-  .menu-close { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--text-tertiary); cursor: pointer; }
-  .menu-close:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
-  .menu-item { display: block; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); color: var(--text-secondary); text-decoration: none; font: 600 15px/1.5 var(--font-sans); }
+  .menu-item { display: block; padding: var(--space-3) var(--space-4); border-radius: var(--radius-item); color: var(--text-secondary); text-decoration: none; font: 600 15px/1.5 var(--font-sans); }
   .menu-item:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
   .menu-item[aria-current="page"] { background: var(--fill-accent-muted); color: var(--text-primary); }
   hr { width: 100%; height: 1px; margin: var(--space-2) 0; border: 0; background: var(--border-subtle); }
   .menu-actions { display: flex; align-items: center; gap: var(--space-3); }
-  @keyframes menu-in { from { opacity: 0; transform: translateY(-8px); } }
 </style>
 
 <script>

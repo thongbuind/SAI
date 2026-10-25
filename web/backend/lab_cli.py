@@ -1,4 +1,4 @@
-"""Bàn thử nghiệm (web lab): nút bấm trên web gọi lệnh ``python -m foundation_lab`` qua tiến trình con, rồi đọc
+"""Phòng làm việc (web lab): nút bấm trên web gọi lệnh ``python -m foundation_lab`` qua tiến trình con, rồi đọc
 thư mục run mà lệnh ghi ra để hiển thị. Chỉ bật khi chạy ``python -m web --lab``.
 
 Web phụ thuộc lab qua hai hợp đồng, không qua import:

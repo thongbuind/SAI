@@ -5,7 +5,7 @@ Cần build site trước (``cd web/site && npm run build:server``). Ví dụ:
     python -m web                                  # nguồn local, cả 3 mô hình, 127.0.0.1:8000
     python -m web --models SAI_35M                 # thử nhanh, ít RAM
     python -m web --source hub --host 0.0.0.0      # trong Docker
-    python -m web --lab                            # thêm bàn thử nghiệm /lab/workbench/ (chỉ chạy ở 127.0.0.1)
+    python -m web --lab                            # thêm phòng làm việc /lab/workbench/ (chỉ chạy ở 127.0.0.1)
 
 Cách nhanh nhất trên máy: ``python start.py`` ở gốc repo (build site rồi chạy lệnh này kèm --lab).
 """
@@ -26,7 +26,7 @@ from web.backend.paths import PROJECT_ROOT, RUNS_DIR, SITE_DIR
 DEFAULT_MODELS = "SAI_100M,SAI_35M,SAI_375M"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
-# Bàn thử nghiệm chạy lệnh lab trên máy chủ nên chỉ được nghe ở loopback.
+# Phòng làm việc chạy lệnh lab trên máy chủ nên chỉ được nghe ở loopback.
 LAB_HOSTS = ("127.0.0.1", "localhost", "::1")
 
 def parse_models(value: str) -> list[str]:
@@ -44,7 +44,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--models", type=parse_models, default=parse_models(DEFAULT_MODELS), help=f"mặc định {DEFAULT_MODELS}")
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--lab", action="store_true", help="bật bàn thử nghiệm: nút bấm gọi lệnh foundation_lab trên máy này")
+    parser.add_argument("--lab", action="store_true", help="bật phòng làm việc: nút bấm gọi lệnh foundation_lab trên máy này")
     args = parser.parse_args(argv)
     if args.lab and args.host not in LAB_HOSTS:
         parser.error(f"--lab chỉ chạy với --host trong {', '.join(LAB_HOSTS)}: nút bấm chạy code trên máy chủ")

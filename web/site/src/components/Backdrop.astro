@@ -1,11 +1,13 @@
 ---
 // Nền trang: canvas hạt (màu lấy từ token --color-particle-*) và orb mờ. Đứng yên khi người xem bật giảm chuyển động.
+// transition:persist: trang Lab chuyển trang bằng ClientRouter (BaseLayout) nên giữ nguyên canvas, để vòng vẽ của
+// script (chạy một lần) tiếp tục thay vì để lại một canvas trống.
 interface Props {
   particles?: number;
 }
 const { particles = 360 } = Astro.props;
 ---
-<div class="backdrop" aria-hidden="true">
+<div class="backdrop" aria-hidden="true" transition:persist="backdrop">
   <canvas data-particles={particles}></canvas>
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>

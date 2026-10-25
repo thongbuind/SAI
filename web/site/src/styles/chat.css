@@ -1,24 +1,26 @@
-/* Trang chat (bản server): ChatSidebar, Composer, tin nhắn trên Figma/mockup. Chỉ TryServer import file này.
-   Tin nhắn và mục lịch sử do script tạo lúc chạy nên không dùng được style scoped của Astro; mọi selector
-   nằm dưới .chat-app để không ảnh hưởng trang khác. */
+/* Trang chat (bản server): ChatSidebar, Composer, tin nhắn theo bố cục web dev2. Chỉ TryServer import file này.
+   Tin nhắn và mục lịch sử do script tạo lúc chạy nên không dùng được style scoped của Astro; mọi selector nằm dưới
+   .chat-app để không ảnh hưởng trang khác. Nút icon, bong bóng và hiệu ứng lớp nổi là component chung trong base.css;
+   nền, viền, bóng, bo góc lấy từ recipe và token vai trò trong tokens.css. */
 
-.chat-app { position: relative; z-index: 1; height: 100vh; height: 100dvh; display: flex; overflow: hidden; }
+/* Thanh bên nổi cách mép --sidebar-inset, padding cũng bằng --sidebar-inset, nên nút đóng trong thanh bên nằm đúng chỗ
+   nút mở nổi (cách mép 2 × inset, cùng cỡ --sidebar-toggle). Thanh bên phóng to từ tâm nút đó như web dev2. */
+.chat-app { --sidebar-inset: var(--space-3); --sidebar-width: 276px; --sidebar-toggle: 38px; position: relative; z-index: 1; height: 100vh; height: 100dvh; display: flex; overflow: hidden; }
 /* SVG icon do script tạo (giống Icon.astro). */
 .chat-app svg.icon { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-
-.chat-app .icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: var(--radius-pill); border: 1px solid transparent; background: transparent; color: var(--text-tertiary); cursor: pointer; text-decoration: none; transition: background-color var(--duration-fast), color var(--duration-fast); }
-.chat-app .icon-btn:hover { background: var(--fill-accent-hover); color: var(--text-primary); }
-.chat-app .icon-btn:active { background: var(--fill-accent-active); }
-.chat-app .icon-btn[aria-pressed="true"] { color: var(--text-accent); }
 /* Ô nhập không cần viền riêng: cả khung composer đổi viền khi focus. */
 .chat-app :is(button, a, [tabindex]):focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 
 /* ===== ChatSidebar ===== */
-.chat-sidebar { width: 276px; margin: var(--space-4) 0 var(--space-4) var(--space-4); padding: var(--space-4); border-radius: var(--radius-xl); background: var(--surface-overlay); border: 1px solid var(--border-default); box-shadow: var(--elevation-3); display: flex; flex-direction: column; gap: var(--space-4); flex: none; overflow: hidden; }
-.chat-sidebar[hidden] { display: none; }
-.chat-sidebar-head { display: flex; align-items: center; justify-content: space-between; }
-.chat-tabs { display: flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-pill); background: var(--fill-highlight); border: 1px solid var(--border-default); }
-.chat-tab { flex: 1; padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill); border: 1px solid transparent; background: none; color: var(--text-tertiary); font: 500 13px/1 var(--font-sans); cursor: pointer; transition: color var(--duration-fast), background-color var(--duration-fast); }
+/* padding trừ 1px viền để nút đóng trùng khít nút mở.
+   Đóng: thu về scale(0) rồi mới ẩn (visibility trễ bằng thời gian thu nhỏ) để không tab vào được; mở: hiện ngay rồi phóng ra. */
+.chat-sidebar { position: fixed; z-index: 60; top: var(--sidebar-inset); bottom: var(--sidebar-inset); left: var(--sidebar-inset); width: var(--sidebar-width); padding: calc(var(--sidebar-inset) - 1px); border-radius: var(--radius-panel); background: var(--overlay-bg); border: 1px solid var(--overlay-border); box-shadow: var(--overlay-shadow); display: flex; flex-direction: column; gap: var(--space-3); overflow: hidden; transform-origin: calc(var(--sidebar-inset) + var(--sidebar-toggle) / 2) calc(var(--sidebar-inset) + var(--sidebar-toggle) / 2); transform: scale(0); opacity: 0; visibility: hidden; transition: transform var(--duration-slow) var(--easing-standard), opacity var(--duration-base) var(--easing-standard), visibility 0s linear var(--duration-slow); }
+.chat-app.sidebar-open .chat-sidebar { transform: none; opacity: 1; visibility: visible; transition: transform var(--duration-slow) var(--easing-standard), opacity var(--duration-base) var(--easing-standard), visibility 0s; }
+.chat-sidebar-head { display: flex; align-items: center; gap: var(--space-2); }
+/* Nút Trò chuyện mới cao bằng nút đóng để hàng đầu không cao hơn, giữ nút đóng đúng chỗ nút mở. */
+.chat-app .chat-new { flex: 1; min-width: 0; height: var(--sidebar-toggle); padding-block: 0; }
+.chat-tabs { display: flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-control); background: var(--fill-highlight); border: 1px solid var(--border-default); }
+.chat-tab { flex: 1; padding: var(--space-2) var(--space-4); border-radius: var(--radius-control); border: 1px solid transparent; background: none; color: var(--text-tertiary); font: 500 13px/1 var(--font-sans); cursor: pointer; transition: color var(--duration-fast), background-color var(--duration-fast); }
 .chat-tab:hover { color: var(--text-primary); }
 .chat-tab[aria-selected="true"] { background: var(--fill-accent-active); border-color: var(--border-strong); color: var(--text-primary); }
 .history { flex: 1; overflow-y: auto; display: flex; flex-direction: column; margin-inline: calc(-1 * var(--space-1)); padding-inline: var(--space-1); }
@@ -26,9 +28,8 @@
 .history-panel[hidden] { display: none; }
 .history h4 { margin: var(--space-3) 0 var(--space-1); padding-left: var(--space-3); }
 .history-empty { margin: var(--space-3); }
-.history-item { display: flex; align-items: center; gap: var(--space-1); min-height: 36px; padding: 4px var(--space-1) 4px var(--space-3); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 13px; }
+.history-item { display: flex; align-items: center; gap: var(--space-1); min-height: 36px; padding: 4px var(--space-1) 4px var(--space-3); border-radius: var(--radius-item); color: var(--text-secondary); font-size: 13px; }
 .history-open { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.history-item .icon-btn { width: 28px; height: 28px; }
 .history-item:hover, .history-item:focus-within { background: var(--fill-accent-hover); color: var(--text-primary); }
 /* Màn cảm ứng không có hover nên nút luôn hiện; có chuột thì chỉ hiện khi rê vào hoặc đang chọn. */
 @media (hover: hover) {
@@ -39,16 +40,20 @@
 .history-item.community { flex-direction: column; align-items: stretch; gap: 2px; padding-block: var(--space-2); border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 .history-item.community:hover { background: var(--fill-accent-hover); }
 .history-item.community > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chat-sidebar-foot { padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); }
-.chat-sidebar-foot p { margin: 0; }
+.chat-sidebar-foot { display: flex; align-items: center; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); }
+.chat-sidebar-foot p { flex: 1; margin: 0; }
 .chat-scrim { position: fixed; inset: 0; z-index: 55; background: rgb(var(--color-neutral-shadow) / var(--alpha-48)); }
 
 /* ===== Khung chính ===== */
-.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
-.chat-topbar { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-4) max(16px, env(safe-area-inset-right, 0px)) var(--space-2) max(16px, env(safe-area-inset-left, 0px)); }
-.chat-topbar .grow { flex: 1; }
-.chat-title { font: 500 13px/1.3 var(--font-sans); color: var(--text-secondary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.readonly-banner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-5); background: var(--fill-accent-subtle); border-bottom: 1px solid var(--border-default); font-size: 13px; color: var(--text-secondary); }
+/* Màn rộng: thanh bên mở thì nội dung chính lùi sang phải, trượt có nảy như ô nhập của web dev2. */
+.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; transition: padding-left var(--duration-slow) var(--easing-spring); }
+@media (min-width: 901px) {
+  .chat-app.sidebar-open .chat-main { padding-left: calc(2 * var(--sidebar-inset) + var(--sidebar-width)); }
+}
+.chat-app .chat-sidebar-open { position: absolute; z-index: 5; top: calc(2 * var(--sidebar-inset)); left: calc(2 * var(--sidebar-inset)); transition: opacity var(--duration-fast), visibility 0s; }
+.chat-app.sidebar-open .chat-sidebar-open { opacity: 0; visibility: hidden; }
+/* Chừa chỗ bên trái cho nút mở thanh bên. */
+.readonly-banner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-5) var(--space-2) calc(2 * var(--sidebar-inset) + var(--sidebar-toggle) + var(--space-3)); background: var(--fill-accent-subtle); border-bottom: 1px solid var(--border-default); font-size: 13px; color: var(--text-secondary); }
 .readonly-banner[hidden] { display: none; }
 .readonly-banner > span { flex: 1; min-width: 200px; }
 .readonly-banner > svg { color: var(--text-accent); }
@@ -58,60 +63,50 @@
 .welcome h1 { margin: 0; font-size: clamp(64px, 12vw, 104px); }
 .welcome p { margin: 0; }
 .welcome .t-eyebrow { margin-top: calc(-1 * var(--space-2)); }
-.welcome .t-large { max-width: 480px; }
-.suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); max-width: 620px; }
-.suggestion { display: inline-flex; align-items: center; padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--fill-accent-muted); color: var(--text-accent); font: 400 12px/1.5 var(--font-sans); cursor: pointer; transition: background-color var(--duration-fast), color var(--duration-fast); }
-.suggestion:hover { background: var(--fill-accent-active); color: var(--text-primary); }
+/* Màn chào (dev2): chữ SAI và ô nhập thành một khối ở giữa màn hình. */
+.chat-main.is-welcome { justify-content: center; }
+.is-welcome .welcome { flex: none; padding-bottom: var(--space-4); }
 
-/* ===== Tin nhắn ===== */
-.chat-scroll { flex: 1; overflow-y: auto; padding: var(--space-8) max(16px, env(safe-area-inset-right, 0px)) var(--space-8) max(16px, env(safe-area-inset-left, 0px)); }
+/* ===== Tin nhắn (bong bóng: .bubble-* trong base.css) ===== */
+.chat-scroll { flex: 1; overflow-y: auto; padding: var(--space-16) max(16px, env(safe-area-inset-right, 0px)) var(--space-8) max(16px, env(safe-area-inset-left, 0px)); }
 .chat-scroll[hidden] { display: none; }
-.chat-thread { max-width: var(--size-chat-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--space-6); }
-.msg-user { align-self: flex-end; max-width: min(520px, 88%); padding: var(--space-3) var(--space-4); border-radius: 16px 16px 4px 16px; background: var(--fill-accent-hover); border: 1px solid var(--border-strong); box-shadow: var(--elevation-1); color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
-.msg-ai { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--space-3); }
-.chat-avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--gradient-brand); border: 1px solid var(--border-strong); color: var(--text-on-accent); font: 500 12px/1 var(--font-sans); }
-.msg-ai-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.msg-ai-bubble { padding: var(--space-3) var(--space-4); border-radius: 4px 16px 16px 16px; background: var(--fill-accent-subtle); border: 1px solid var(--border-default); box-shadow: var(--elevation-1); color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
-.msg-meta { display: flex; align-items: center; gap: var(--space-1); }
-.msg-meta .t-caption { margin-right: var(--space-2); }
-.msg-meta .icon-btn { width: 28px; height: 28px; }
-@media (hover: hover) {
-  .msg-ai .msg-meta .icon-btn { opacity: 0; transition: opacity var(--duration-fast); }
-  .msg-ai:hover .msg-meta .icon-btn, .msg-ai:focus-within .msg-meta .icon-btn { opacity: 1; }
-}
-.msg-system { align-self: center; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4); min-height: 30px; border-radius: var(--radius-pill); background: var(--fill-danger-subtle); border: 1px solid var(--border-danger); color: var(--text-danger); font-size: 12px; }
-.msg-system .icon-btn { width: 28px; height: 28px; color: var(--text-danger); }
-.typing { display: inline-flex; gap: 4px; align-items: center; padding: var(--space-3) var(--space-4); border-radius: 4px 16px 16px 16px; background: var(--fill-accent-subtle); border: 1px solid var(--border-default); width: fit-content; }
-.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--fill-accent-solid); animation: chat-bounce 1.2s infinite; }
-.typing i:nth-child(2) { animation-delay: 0.2s; }
-.typing i:nth-child(3) { animation-delay: 0.4s; }
-@keyframes chat-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+.chat-thread { max-width: var(--size-chat-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--space-5); }
+.chat-thread > .bubble-user { align-self: flex-end; max-width: 80%; }
+/* Câu trả lời như dev2: tên mô hình ở trên, thẳng mép bong bóng; avatar bên trái; bong bóng co theo chữ, tối đa 72%. */
+.msg-ai { display: flex; flex-direction: column; gap: var(--space-2); }
+.msg-ai > .bubble-label { padding-left: calc(28px + var(--space-3)); }
+.msg-ai-row { display: flex; align-items: flex-start; gap: var(--space-3); }
+.msg-ai-body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); min-width: 0; max-width: 72%; }
+.msg-actions { display: flex; gap: var(--space-1); opacity: 0.5; transition: opacity var(--duration-fast); }
+.msg-ai:hover .msg-actions, .msg-actions:focus-within { opacity: 1; }
+.msg-system { align-self: center; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4); min-height: 30px; border-radius: var(--radius-control); background: var(--fill-danger-subtle); border: 1px solid var(--border-danger); color: var(--text-danger); font-size: 12px; }
+.msg-system .icon-btn { color: var(--text-danger); }
 
 /* ===== Composer ===== */
 .chat-dock { padding: var(--space-2) max(16px, env(safe-area-inset-right, 0px)) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .chat-dock[hidden] { display: none; }
 .composer-wrap { position: relative; max-width: var(--size-chat-max); margin-inline: auto; }
-.composer { padding: var(--space-4) var(--space-3) var(--space-3) var(--space-5); border-radius: var(--radius-xl); background: var(--surface-raised); border: 1px solid var(--border-highlight); box-shadow: var(--elevation-2); display: flex; flex-direction: column; gap: var(--space-3); transition: border-color var(--duration-base), box-shadow var(--duration-base); }
-.composer:focus-within { border-color: var(--border-focus); box-shadow: var(--elevation-2), var(--glow); }
-.composer textarea { width: 100%; min-height: 26px; max-height: 200px; resize: none; border: 0; outline: 0; background: none; color: var(--text-primary); font: 400 15px/1.7 var(--font-sans); padding: 0; }
+/* Ô nhập một hàng (dev2): chữ, chia sẻ, chọn mô hình, gửi, mọi nút cao 38px. Gõ nhiều dòng thì ô cao lên và các nút
+   bám đáy. Một dòng thì ô cao 56px nên --radius-field (28px) làm hai đầu tròn như viên thuốc. */
+.composer { padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5); border-radius: var(--radius-field); background: var(--input-bg); border: 1px solid var(--input-border); box-shadow: var(--input-shadow); display: flex; align-items: flex-end; gap: var(--space-2); transition: border-color var(--duration-base), box-shadow var(--duration-base); }
+.composer:focus-within { border-color: var(--border-focus); box-shadow: var(--input-shadow-focus); }
+/* padding dọc 6px để một dòng chữ (25.5px) cao bằng nút 38px. */
+.composer textarea { flex: 1; min-width: 0; min-height: 38px; max-height: 200px; resize: none; border: 0; outline: 0; background: none; color: var(--text-primary); font: 400 15px/1.7 var(--font-sans); padding: 6px 0; }
 .composer textarea::placeholder { color: var(--text-tertiary); }
 .composer.is-disabled { opacity: 0.72; }
 .composer.is-disabled textarea::placeholder { color: var(--text-disabled); }
-.composer-row { display: flex; align-items: center; gap: var(--space-2); }
-.composer-row .grow { flex: 1; }
-.model-select { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill); background: var(--fill-accent-subtle); border: 1px solid var(--border-strong); color: var(--text-secondary); font: 500 13px/1 var(--font-sans); cursor: pointer; }
+.model-select { display: inline-flex; align-items: center; flex: none; gap: var(--space-2); height: 38px; padding: 0 var(--space-3); border-radius: var(--radius-control); background: var(--control-bg); border: 1px solid var(--control-border); color: var(--control-color); font: 500 13px/1 var(--font-sans); cursor: pointer; transition: background-color var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast); }
 .model-select .i-cpu { color: var(--text-accent); }
 .model-select .i-chev { transition: transform var(--duration-fast); }
-.model-select:hover, .model-select[aria-expanded="true"] { background: var(--fill-accent-hover); color: var(--text-primary); }
-.model-select[aria-expanded="true"] { border-color: var(--border-focus); }
+.model-select:hover, .model-select[aria-expanded="true"] { background: var(--control-bg-hover); border-color: var(--control-border-hover); color: var(--text-primary); }
 .model-select[aria-expanded="true"] .i-chev { transform: rotate(180deg); }
-.send-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--gradient-brand); border: 1px solid var(--border-strong); color: var(--text-on-accent); box-shadow: var(--glow); cursor: pointer; flex: none; }
+.send-btn { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--gradient-brand); border: 1px solid var(--border-strong); color: var(--text-on-accent); box-shadow: var(--glow); cursor: pointer; flex: none; }
 .send-btn:hover { box-shadow: var(--glow-hover); }
 .send-btn:disabled { background: var(--fill-highlight); border-color: var(--border-subtle); color: var(--text-disabled); box-shadow: none; cursor: not-allowed; }
-.model-menu { position: absolute; right: 56px; bottom: calc(100% + 8px); width: 260px; padding: var(--space-2); border-radius: var(--radius-lg); background: var(--surface-overlay); border: 1px solid var(--border-default); box-shadow: var(--elevation-3); display: flex; flex-direction: column; gap: 2px; z-index: 5; }
+.model-menu { position: absolute; right: 56px; bottom: calc(100% + 8px); width: 260px; padding: var(--space-2); border-radius: var(--radius-menu); background: var(--overlay-bg); border: 1px solid var(--overlay-border); box-shadow: var(--overlay-shadow); display: flex; flex-direction: column; gap: 2px; z-index: 5; }
 .model-menu[hidden] { display: none; }
 .model-menu h4 { margin: var(--space-2) var(--space-3) var(--space-1); }
-.model-option { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); cursor: pointer; }
+.model-option { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-item); cursor: pointer; }
 .model-option > div { flex: 1; display: flex; flex-direction: column; }
 .model-option b { font: 500 13px/1.4 var(--font-sans); color: var(--text-secondary); }
 .model-option:hover, .model-option:focus-visible { background: var(--fill-accent-hover); outline: 0; }
@@ -120,12 +115,13 @@
 .model-option[aria-disabled="true"] { cursor: not-allowed; opacity: 0.6; }
 .model-option > svg { color: var(--text-accent); visibility: hidden; }
 .model-option[aria-selected="true"] > svg { visibility: visible; }
-.chat-disclaimer { text-align: center; margin: var(--space-2) 0 0; }
+.chat-status { display: flex; justify-content: center; margin-top: var(--space-3); }
+.chat-app .chat-status .badge { white-space: normal; text-align: center; line-height: 1.4; }
 
 @media (max-width: 900px) {
-  .chat-sidebar { position: fixed; z-index: 60; inset: var(--space-3) auto var(--space-3) var(--space-3); margin: 0; width: min(300px, calc(100vw - 48px)); }
+  .chat-app { --sidebar-width: min(300px, calc(100vw - 48px)); }
 }
 @media (max-width: 640px) {
-  .chat-title, .chat-status { display: none; }
   .model-menu { right: 0; width: min(260px, 100%); }
+  .msg-ai-body { max-width: calc(100% - 28px - var(--space-3)); }
 }

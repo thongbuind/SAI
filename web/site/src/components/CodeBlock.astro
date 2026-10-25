@@ -21,13 +21,13 @@ const LANGUAGE_LABEL = { python: "Python", yaml: "YAML", bash: "bash", text: "" 
     {LANGUAGE_LABEL[lang] && <span class="language">{LANGUAGE_LABEL[lang]}</span>}
     {title && <span class="file">{title}</span>}
     <span class="grow"></span>
-    <button class="copy" type="button" data-copy-code aria-label="Sao chép"><Icon name="copy" /></button>
+    <button class="icon-btn copy" type="button" data-copy-code aria-label="Sao chép"><Icon name="copy" /></button>
   </div>
   <Code code={code.trimEnd()} lang={lang} theme="css-variables" wrap={wrap} />
 </div>
 
 <style>
-  .code-block { min-width: 0; overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-terminal); box-shadow: var(--elevation-1); }
+  .code-block { min-width: 0; overflow: hidden; border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--surface-terminal); box-shadow: var(--elevation-1); }
   .code-bar { display: flex; align-items: center; gap: var(--space-2); padding: 6px var(--space-2) 6px var(--space-4); border-bottom: 1px solid rgb(var(--color-on-accent) / var(--alpha-12)); }
   .dots { display: inline-flex; gap: 6px; margin-right: var(--space-1); }
   .dots i { width: 10px; height: 10px; border-radius: 50%; background: rgb(var(--color-terminal-dot-red)); }
@@ -36,7 +36,8 @@ const LANGUAGE_LABEL = { python: "Python", yaml: "YAML", bash: "bash", text: "" 
   .language { font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--code-muted); }
   .file { font: 400 12px/1.6 var(--font-mono); color: var(--code-muted); }
   .grow { flex: 1; }
-  .copy { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--code-muted); cursor: pointer; }
+  /* Nền terminal luôn tối nên nút sao chép dùng màu chữ code thay cho màu mặc định của .icon-btn. */
+  .copy { color: var(--code-muted); }
   .copy:hover { background: rgb(var(--color-on-accent) / var(--alpha-08)); color: var(--code-text); }
   .copy[data-copied="true"] { color: var(--syntax-string); }
   .code-block :global(.astro-code) { border-radius: 0; }

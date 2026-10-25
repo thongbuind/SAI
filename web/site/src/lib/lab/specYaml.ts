@@ -1,5 +1,5 @@
 // Viết một phần spec thành YAML theo cách viết của file spec trong lab (vd. foundation_lab/inference/configs/
-// compare_35M.yaml): bỏ khoá bằng mặc định trong schema; object chỉ chứa giá trị đơn viết gọn trên một dòng.
+// compare_375M.yaml): bỏ khoá bằng mặc định trong schema; object chỉ chứa giá trị đơn viết gọn trên một dòng.
 import type { ObjectSchema } from "./labApi";
 
 // Chuỗi viết trần được: bắt đầu bằng chữ hoặc "_", không có ký tự mà YAML hiểu theo nghĩa khác (":", "#", ngoặc...).

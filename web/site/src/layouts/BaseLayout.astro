@@ -1,6 +1,12 @@
 ---
 // Khung chung của mọi trang: head (font, theme sớm), nền, navbar, menu mobile, nội dung, footer.
 // chrome="app" (trang chat bản server) bỏ navbar, menu mobile và footer để nội dung chiếm trọn màn hình.
+// footer={false} để trang tự đặt <Footer /> trong nội dung (trang chủ ghép footer vào màn hình cuối).
+// Trang Lab (current="lab") chuyển trang bằng ClientRouter: chỉ thân trang được thay, nền, navbar và menu giữ nguyên
+// (transition:persist trong từng component), sidebar Lab đứng yên. Script bundle chỉ chạy một lần mỗi lần tải trang
+// thật, nên script cần chạy theo từng trang nghe "astro:page-load". Từ Lab sang trang khác vẫn tải trọn trang vì trang
+// đích không bật ClientRouter.
+import { ClientRouter } from "astro:transitions";
 import "../styles/tokens.css";
 import "../styles/base.css";
 import Backdrop from "../components/Backdrop.astro";
@@ -15,8 +21,9 @@ interface Props {
   description: string;
   current?: PageKey;
   chrome?: "page" | "app";
+  footer?: boolean;
 }
-const { title, description, current, chrome = "page" } = Astro.props;
+const { title, description, current, chrome = "page", footer = true } = Astro.props;
 ---
 <!doctype html>
 <html lang="vi">
@@ -29,13 +36,19 @@ const { title, description, current, chrome = "page" } = Astro.props;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=Playfair+Display:wght@700;800&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" />
-    <!-- Áp theme đã lưu trước khi vẽ trang để không nháy sai theme; không có thì theo hệ thống. -->
+    <!-- Áp theme đã lưu trước khi vẽ trang để không nháy sai theme; không có thì theo hệ thống. ClientRouter thay
+         thuộc tính của <html> bằng của trang mới và không chạy lại script này, nên chép theme sang trang mới. -->
     <script is:inline>
       try {
         const saved = localStorage.getItem("sai-theme");
         if (saved === "dark" || saved === "light") document.documentElement.dataset.theme = saved;
       } catch {}
+      document.addEventListener("astro:before-swap", event => {
+        const theme = document.documentElement.dataset.theme;
+        if (theme) event.newDocument.documentElement.dataset.theme = theme;
+      });
     </script>
+    {current === "lab" && <ClientRouter />}
   </head>
   <body>
     <Backdrop />
@@ -44,7 +57,7 @@ const { title, description, current, chrome = "page" } = Astro.props;
     <main class="page">
       <slot />
     </main>
-    {chrome === "page" && current !== "lab" && <Footer />}
+    {chrome === "page" && current !== "lab" && footer && <Footer />}
   </body>
 </html>
 

@@ -28,8 +28,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "web" / "site" / "src" / "data"
 MODEL_CONFIG_DIR = PROJECT_ROOT / "config" / "models"
 RELEASE_DIR = PROJECT_ROOT / "hf_release" / "releases"
-# Pipeline minh hoạ trên web: experiment gốc mà mọi cỡ mô hình kế thừa.
-PIPELINE_EXPERIMENT = PROJECT_ROOT / "foundation_lab" / "core" / "configs" / "base.yaml"
 # File config hiển thị nguyên văn trên trang Lab: khoá trong snippets.json → đường dẫn từ gốc dự án.
 SNIPPET_FILES = {
     "experiment_35m": "foundation_lab/core/configs/SAI_35M.yaml",
@@ -95,20 +93,6 @@ def export_lab() -> dict:
     # Thứ tự in của "python -m foundation_lab list" (theo catalog), để khối lệnh trên web trùng output thật.
     return {"departments": departments, "list_order": list(DEPARTMENTS)}
 
-def export_pipeline() -> dict:
-    experiment = load_with_extends(PIPELINE_EXPERIMENT)
-    stages = [
-        {
-            "name": name,
-            "recipe": stage["recipe"],
-            "data": stage["data"],
-            "init": stage.get("init"),
-            "enabled": stage.get("enabled", True),
-        }
-        for name, stage in experiment["pipeline"].items()
-    ]
-    return {"source": PIPELINE_EXPERIMENT.relative_to(PROJECT_ROOT).as_posix(), "stages": stages}
-
 def export_snippets() -> dict:
     return {
         key: {"path": path, "text": (PROJECT_ROOT / path).read_text(encoding="utf-8")}
@@ -130,7 +114,6 @@ def build_site_data() -> dict[str, object]:
         "generation": export_generation(),
         "version": export_version(),
         "lab": export_lab(),
-        "pipeline": export_pipeline(),
         "snippets": export_snippets(),
     }
 

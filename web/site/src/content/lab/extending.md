@@ -1,8 +1,8 @@
 ---
 title: Mở rộng lab
 description: Thêm biến thể bằng cách đăng ký implementation vào registry của phòng tương ứng rồi chọn nó qua config, không sửa code của phòng khác.
-group: Kiến trúc lab
-order: 3
+group: Bắt đầu
+order: 15
 ---
 
 ## Registry
@@ -19,6 +19,7 @@ Mỗi phòng ban sở hữu một hoặc vài registry: bảng tra từ tên san
 | `OBJECTIVES` | Objective | Hàm loss |
 | `LR_SCHEDULES` | Vận hành | Lịch learning rate |
 | `RECIPES` | Phương pháp huấn luyện | Phương pháp huấn luyện một stage |
+| `DECODERS` | Suy luận | Cách giải mã cho lệnh `infer` (`sai` là `SAI.generate` chính thức) |
 
 ## Bốn cấp độ thay đổi kiến trúc
 
@@ -50,20 +51,20 @@ Nếu đặt kernel trong một file mới, import file đó trong `foundation_l
 
 ### 2. So sánh với kernel tham chiếu
 
-Kernel không có tham số, nên nếu output và gradient khớp `sdpa` thì có thể thay kernel mà vẫn dùng nguyên trọng số đã train.
+Kernel không có tham số, nên nếu output và gradient khớp kernel mặc định của model thì có thể thay kernel mà vẫn dùng nguyên trọng số đã train.
 
 ```bash
-python -m foundation_lab compare-kernel sdpa my_kernel --seq-len 128 --repeats 5
+python -m foundation_lab compare-kernel --set candidate=my_kernel
 ```
 
-Lệnh in sai khác lớn nhất của output (`max_abs_diff_out`), của gradient theo q, k, v, và thời gian forward cộng backward của hai kernel (`reference_ms`, `candidate_ms`).
+Kernel tham chiếu luôn là `attention_kernel` mặc định hiện tại của từng model (hiện là `sdpa`), lấy từ config của model chứ không gõ tay. Lệnh chạy trên shape attention của cả ba cỡ model (`SAI_modular_35M`, `SAI_modular_100M`, `SAI_modular_375M`); mỗi cỡ cho sai khác lớn nhất của output (`max_abs_diff_out`) và của gradient theo q, k, v, kết luận `matches_reference`, thời gian forward cộng backward (`reference_ms`, `candidate_ms`, `speedup`) và bộ nhớ đỉnh (`reference_peak_mib`, `candidate_peak_mib`, chỉ đo được trên CUDA) của hai kernel. Kết quả ghi vào `runs/compare-kernel/<thời gian>/`; trên web, mở Phòng làm việc › Kiến trúc để chạy và xem dạng bảng.
 
 ### 3. Chọn kernel trong config
 
-Sao chép `foundation_lab/architecture/configs/SAI_modular_35M.yaml` thành file mới và đổi một dòng:
+Sao chép `foundation_lab/architecture/configs/SAI_modular_375M.yaml` thành file mới và đổi một dòng:
 
 ```yaml
-extends: ../../../config/models/SAI_35M.yaml
+extends: ../../../config/models/SAI_375M.yaml
 family: SAI_modular
 attention: gqa
 attention_kernel: my_kernel

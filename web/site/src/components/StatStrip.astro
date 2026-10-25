@@ -12,7 +12,7 @@ const { stats } = Astro.props;
 </ul>
 
 <style>
-  .stat-strip { list-style: none; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-6); padding: var(--space-6) var(--space-8); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); }
+  .stat-strip { list-style: none; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-6); padding: var(--space-6) var(--space-8); border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); }
   .stat { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
   .value { font: 700 28px/1.2 var(--font-display); font-variant-numeric: tabular-nums; background: var(--gradient-logo); -webkit-background-clip: text; background-clip: text; color: transparent; }
   @media (max-width: 600px) { .stat-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--space-6); } }

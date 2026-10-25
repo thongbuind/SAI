@@ -144,7 +144,7 @@ print(model.generate_response(tokenizer=tokenizer, messages=messages))`;
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-12); align-items: start; padding-bottom: var(--space-16); }
   .main { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }
   .aside { position: sticky; top: 96px; display: flex; flex-direction: column; gap: var(--space-4); align-items: stretch; }
-  .summary { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); }
+  .summary { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--surface-base); }
   .summary dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2) var(--space-4); font-size: 13px; }
   .summary dt { color: var(--text-tertiary); }
   .summary dd { margin: 0; text-align: right; color: var(--text-primary); }
@@ -152,11 +152,11 @@ print(model.generate_response(tokenizer=tokenizer, messages=messages))`;
   .hub-link:hover { color: var(--text-primary); }
   .main p { margin: 0; }
   .main a { color: var(--text-accent); }
-  .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); }
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-card); border: 1px solid var(--table-border); background: var(--table-bg); box-shadow: var(--table-shadow); }
   table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
+  th, td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--table-row-border); text-align: left; vertical-align: top; }
   tr:last-child > * { border-bottom: 0; }
-  thead th { background: var(--fill-accent-subtle); font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-tertiary); }
+  thead th { background: var(--table-head-bg); border-bottom-color: var(--table-head-border); font: 600 10px/1.4 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--table-head-label); }
   tbody th { font: 400 12px/1.6 var(--font-mono); color: var(--text-accent); white-space: nowrap; }
   td:nth-child(2) { color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
   td { color: var(--text-secondary); }

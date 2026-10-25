@@ -170,7 +170,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 
     def __init__(self, app: ASGIApp, skip_prefixes: list[str] | None = None):
         super().__init__(app)
-        # /_astro/ chứa CSS, JS do Astro build ra. /api/lab/ là bàn thử nghiệm trên máy người phát triển,
+        # /_astro/ chứa CSS, JS do Astro build ra. /api/lab/ là phòng làm việc trên máy người phát triển,
         # không phải lượt dùng của người dùng.
         self._skip_prefixes = skip_prefixes or ["/_astro/", "/api/lab/"]
 

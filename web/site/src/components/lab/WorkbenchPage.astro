@@ -1,14 +1,15 @@
 ---
-// Route /lab/workbench/[department]/: bàn thử nghiệm của một phòng, cùng khung với trang tài liệu Lab
+// Route /lab/workbench/[department]/: phòng làm việc của một phòng, cùng khung với trang tài liệu Lab
 // (navbar, sidebar Lab | kết quả | control center). Bố cục và các mốc màn hình trong styles/lab.css.
 // Không nằm trong src/pages: astro.config.mjs chỉ đăng ký route này khi build bản server, để bản static
-// không chứa JS/CSS của bàn thử nghiệm.
+// không chứa JS/CSS của phòng làm việc.
 import "../../styles/lab.css";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumb from "../docs/Breadcrumb.astro";
 import LabMobileNav from "../docs/LabMobileNav.astro";
 import LabSidebar from "../docs/LabSidebar.astro";
-import InferenceBench from "./InferenceBench.astro";
+import PlannedBench from "./PlannedBench.astro";
+import TaskBench from "./TaskBench.astro";
 import { labDocs } from "../../lib/docs";
 import { url } from "../../lib/paths";
 import { WORKBENCH_PAGES, type WorkbenchPage } from "../../lib/lab/workbench";
@@ -23,39 +24,56 @@ interface Props {
 const { page } = Astro.props;
 const docs = await labDocs();
 const currentId = `workbench/${page.department}`;
+// Phòng đã chạy được từ web: bàn chạy lệnh (TaskBench). Phòng chưa có lệnh: trang chờ (PlannedBench), không có control
+// center nên .wb mang data-planned để bỏ cột đó (styles/lab.css).
+const Bench = "planned" in page ? PlannedBench : TaskBench;
+const benchProps = "planned" in page ? { planned: page.planned } : { command: page.command, empty: page.empty };
 ---
-<BaseLayout title={`${page.title} · Bàn làm việc · Foundation Lab`} description={page.description} current="lab">
-  <div class="wb" id="wb" data-open="">
-    <aside class="wb-side"><LabSidebar docs={docs} currentId={currentId} /></aside>
-    <InferenceBench command={page.command}>
-      <Breadcrumb items={[{ label: "Foundation Lab", href: url("/lab/") }, { label: "Bàn làm việc" }, { label: page.title }]} />
+<BaseLayout title={`${page.title} · Phòng làm việc · Foundation Lab`} description={page.description} current="lab">
+  <div class="wb" id="wb" data-open="" data-planned={"planned" in page ? "" : undefined}>
+    <aside class="wb-side" data-lab-side transition:name="lab-sidebar" transition:animate="none"><LabSidebar docs={docs} currentId={currentId} /></aside>
+    <Bench {...benchProps}>
+      <Breadcrumb items={[{ label: "Foundation Lab", href: url("/lab/") }, { label: "Phòng làm việc" }, { label: page.title }]} />
       <LabMobileNav docs={docs} currentId={currentId} />
       <header class="wb-header">
         <h1 class="t-h1">{page.title}</h1>
         <p class="t-lead">{page.description}</p>
       </header>
-    </InferenceBench>
+    </Bench>
     <div class="wb-scrim" id="wb-scrim" hidden></div>
   </div>
 </BaseLayout>
 
 <script>
-  // Màn hẹp: control center là ngăn trượt; Esc, bấm nền mờ hoặc bấm Chạy thì đóng.
-  const wb = document.getElementById("wb")!;
-  const scrim = document.getElementById("wb-scrim")!;
-  const opener = document.getElementById("wb-open-control") as HTMLButtonElement;
+  // Màn hẹp: control center là ngăn trượt; Esc, bấm nền mờ hoặc bấm Chạy thì đóng. Trang chờ (PlannedBench) không có
+  // control center nên không có nút mở ngăn, không gắn gì.
+  // Trang Lab chuyển trang bằng ClientRouter (BaseLayout) nên script này chỉ chạy một lần: gắn cho từng trang ở
+  // astro:page-load, và gỡ listener trên document/window trước khi thân trang bị thay để không gắn chồng.
+  let detach: AbortController | null = null;
+  document.addEventListener("astro:page-load", () => {
+    const wb = document.getElementById("wb");
+    const scrim = document.getElementById("wb-scrim");
+    const opener = document.getElementById("wb-open-control") as HTMLButtonElement | null;
+    if (!wb || !scrim || !opener) return;
+    detach = new AbortController();
+    const { signal } = detach;
 
-  function setControlOpen(open: boolean) {
-    wb.dataset.open = open ? "control" : "";
-    scrim.hidden = !open;
-    opener.setAttribute("aria-expanded", String(open));
-  }
+    const setControlOpen = (open: boolean) => {
+      wb.dataset.open = open ? "control" : "";
+      scrim.hidden = !open;
+      opener.setAttribute("aria-expanded", String(open));
+    };
 
-  opener.addEventListener("click", () => setControlOpen(true));
-  scrim.addEventListener("click", () => setControlOpen(false));
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && wb.dataset.open) setControlOpen(false);
+    opener.addEventListener("click", () => setControlOpen(true));
+    scrim.addEventListener("click", () => setControlOpen(false));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && wb.dataset.open) setControlOpen(false);
+    }, { signal });
+    // TaskBench phát sự kiện này khi gửi job: đóng control center để thấy kết quả.
+    window.addEventListener("workbench:job-submitted", () => setControlOpen(false), { signal });
   });
-  // InferenceBench phát sự kiện này khi gửi job: đóng control center để thấy kết quả.
-  window.addEventListener("workbench:job-submitted", () => setControlOpen(false));
+  document.addEventListener("astro:before-swap", () => {
+    detach?.abort();
+    detach = null;
+  });
 </script>

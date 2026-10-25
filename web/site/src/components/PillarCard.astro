@@ -21,7 +21,7 @@ const Tag = href ? "a" : "article";
 </Tag>
 
 <style>
-  .pillar { position: relative; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-8) var(--space-6); overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); color: inherit; text-decoration: none; transition: border-color var(--duration-base), box-shadow var(--duration-base); }
+  .pillar { position: relative; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-8) var(--space-6); overflow: hidden; border-radius: var(--radius-card); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-1); color: inherit; text-decoration: none; transition: border-color var(--duration-base), box-shadow var(--duration-base); }
   .pillar::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--gradient-accent-line); }
   .pillar h3, .pillar p { margin: 0; }
   a.pillar:hover { border-color: var(--border-strong); box-shadow: var(--elevation-2); }

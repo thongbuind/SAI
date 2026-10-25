@@ -1,7 +1,7 @@
 """Chạy web SAI trên máy bằng một lệnh: ``python start.py`` (từ thư mục nào cũng được).
 
 1. Cài thư viện của site nếu chưa có (``npm ci``), build site bản server (``npm run build:server``).
-2. Chạy ``python -m web --lab``: chat ở http://127.0.0.1:8000/try/, bàn thử nghiệm ở
+2. Chạy ``python -m web --lab``: chat ở http://127.0.0.1:8000/try/, phòng làm việc ở
    http://127.0.0.1:8000/lab/workbench/inference/.
 
 Tham số thêm được chuyển thẳng cho ``python -m web``, ví dụ chỉ nạp mô hình nhỏ cho chat để đỡ RAM:

@@ -1,4 +1,4 @@
-"""Hàng đợi job của bàn thử nghiệm: mỗi job là một lần chạy ``python -m foundation_lab <lệnh> -`` với spec gửi qua stdin.
+"""Hàng đợi job của phòng làm việc: mỗi job là một lần chạy ``python -m foundation_lab <lệnh> -`` với spec gửi qua stdin.
 
 Mỗi lúc chỉ chạy một job (máy 8GB RAM, mỗi job nạp một model). Trạng thái job chỉ giữ trong bộ nhớ;
 kết quả thật nằm trong thư mục run do lab ghi, nên server khởi động lại vẫn đọc được lịch sử (xem runs.py).

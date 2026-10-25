@@ -29,9 +29,13 @@ const items = headings.filter(heading => heading.depth === 2 || heading.depth ==
 <script>
   // Section nằm trong dải 20%–30% chiều cao màn hình được coi là đang đọc.
   const VISIBLE_BAND = "-20% 0px -70% 0px";
-  const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")];
-  if (links.length) {
-    const observer = new IntersectionObserver(entries => {
+  // Trang Lab chuyển trang bằng ClientRouter (BaseLayout) nên script này chỉ chạy một lần: dựng observer cho từng trang
+  // ở astro:page-load (có cả lần tải đầu) và ngắt nó trước khi thân trang bị thay.
+  let observer: IntersectionObserver | null = null;
+  document.addEventListener("astro:page-load", () => {
+    const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")];
+    if (!links.length) return;
+    const pageObserver = new IntersectionObserver(entries => {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         links.forEach(link => link.setAttribute("aria-current", String(link.hash === `#${entry.target.id}`)));
@@ -39,7 +43,12 @@ const items = headings.filter(heading => heading.depth === 2 || heading.depth ==
     }, { rootMargin: VISIBLE_BAND });
     links.forEach(link => {
       const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
-      if (target) observer.observe(target);
+      if (target) pageObserver.observe(target);
     });
-  }
+    observer = pageObserver;
+  });
+  document.addEventListener("astro:before-swap", () => {
+    observer?.disconnect();
+    observer = null;
+  });
 </script>

@@ -1,0 +1,385 @@
+---
+// Phòng làm việc của một tác vụ lab (infer, compare-kernel...): vùng kết quả (giữa) và control center (phải) trong khung
+// WorkbenchPage. Slot mặc định là phần đầu trang (breadcrumb, tiêu đề) do WorkbenchPage truyền vào, đặt trên vùng kết quả.
+// Phần chung ở đây: form dựng từ describe, lịch sử run, trạng thái, tiến trình qua SSE, xác nhận, huỷ, dòng lệnh chạy
+// lại. Phần riêng của từng lệnh (tóm tắt, câu xác nhận, cách vẽ kết quả) nằm trong src/lib/lab/views/. Nút Chạy gọi
+// "python -m foundation_lab <lệnh>" qua web/backend (python -m web --lab); kết quả đọc từ runs/<lệnh>/<run_id>/.
+// Phần tử tạo lúc chạy dùng style trong styles/lab.css.
+import Button from "../Button.astro";
+import Icon from "../Icon.astro";
+
+interface Props {
+  command: string;
+  // Câu đầu của trạng thái chưa có lần chạy: cần chọn gì ở control center.
+  empty: string;
+}
+const { command, empty } = Astro.props;
+---
+<section class="wb-stage" id="bench" data-command={command} aria-label="Kết quả">
+  <slot />
+  <div class="stage-head">
+    <div class="run-picker">
+      <button class="run-picker-button" type="button" id="bench-picker" aria-haspopup="listbox" aria-expanded="false" aria-controls="bench-history">
+        <Icon name="clock" /><span id="bench-picker-label">Chưa có lần chạy</span><Icon name="chevron-down" class="chev" />
+      </button>
+      <ul class="run-menu" id="bench-history" role="listbox" aria-label="Các lần chạy" hidden></ul>
+    </div>
+    <span class="lab-state" id="bench-state" hidden></span>
+    <span class="stage-grow"></span>
+    <span class="t-caption" id="bench-timing"></span>
+    <button class="wb-open-control" type="button" id="wb-open-control" aria-controls="wb-control" aria-expanded="false"><Icon name="sliders" />Cấu hình</button>
+  </div>
+  <progress id="bench-progress" max="1" value="0" hidden></progress>
+
+  <div class="stage-body" aria-live="polite">
+    <div class="stage-empty" id="bench-empty">
+      <p class="t-h4">Chưa có lần chạy</p>
+      <p class="t-small">{empty} Lệnh <code>python -m foundation_lab {command}</code> chạy trên máy này; kết quả nằm trong <code>runs/{command}/</code>.</p>
+    </div>
+    <p class="bench-error" id="bench-run-error" role="alert" hidden></p>
+    <div class="stage-result" id="bench-result"></div>
+    <section class="block" id="bench-rerun" aria-labelledby="bench-rerun-title" hidden>
+      <h2 class="t-h4" id="bench-rerun-title">Chạy lại từ dòng lệnh</h2>
+      <div class="lab-cmd">
+        <pre><span class="lab-cmd-prompt">$ </span><span id="bench-rerun-command"></span></pre>
+        <button class="lab-icon-btn" type="button" id="bench-rerun-copy" aria-label="Sao chép lệnh" title="Sao chép lệnh"><Icon name="copy" /></button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<aside class="wb-control" id="wb-control" aria-labelledby="bench-control-title">
+  <header class="control-head">
+    <h2 class="t-h4" id="bench-control-title">Control center</h2>
+    <span class="t-caption">{command}</span>
+  </header>
+  <div class="control-body" id="bench-fields"><p class="t-caption">Đang đọc mô tả lab…</p></div>
+  <footer class="control-foot">
+    <p class="bench-error" id="bench-form-error" role="alert" hidden></p>
+    <div class="control-actions">
+      <span class="t-caption" id="bench-run-count"></span>
+      <Button id="bench-cancel" size="sm" icon="close">Huỷ</Button>
+      <Button id="bench-run" variant="primary" size="sm" icon="play">Chạy</Button>
+    </div>
+  </footer>
+</aside>
+
+<dialog class="bench-confirm" id="bench-confirm" aria-labelledby="bench-confirm-title">
+  <h2 class="t-h4" id="bench-confirm-title">Chạy lệnh trên máy này?</h2>
+  <p class="t-small" id="bench-confirm-text"></p>
+  <div class="control-actions">
+    <Button id="bench-confirm-cancel" size="sm">Thôi</Button>
+    <Button id="bench-confirm-run" variant="primary" size="sm" icon="play">Chạy</Button>
+  </div>
+</dialog>
+
+<script>
+  import {
+    ACTIVE_STATES, DESCRIBE_FORMAT_VERSION, cancelJob, fetchDescription, getRun, listRuns, submitJob, watchRun,
+    type LabEvent, type RunDetail, type RunState, type RunSummary,
+  } from "../../lib/lab/labApi";
+  import { FormError, objectControl, type Control, type FieldHints } from "../../lib/lab/specForm";
+  import { TASK_VIEWS } from "../../lib/lab/views";
+  import type { Spec } from "../../lib/lab/views/view";
+  import { copyToClipboard } from "../../lib/chatRender";
+  import { RequestError } from "../../lib/http";
+  import fieldHints from "../../data/lab_fields.json";
+
+  // Số dòng stderr cuối hiện khi lệnh lab lỗi mà không ghi được sự kiện "failed" (vd. lỗi config).
+  const STDERR_SHOWN_LINES = 6;
+  const STATE_LABELS: Record<RunState, string> = {
+    queued: "Đang chờ", running: "Đang chạy", succeeded: "Xong", failed: "Lỗi", cancelled: "Đã huỷ", incomplete: "Dừng giữa chừng",
+  };
+  // run_id của lab: "20261024-021117-8eb5" (ngày-giờ-hậu tố).
+  const RUN_ID_PATTERN = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/;
+
+  // Trang Lab chuyển trang bằng ClientRouter (BaseLayout) nên script này chỉ chạy một lần mỗi lần tải trang thật:
+  // dựng phòng làm việc cho từng trang ở astro:page-load (có cả lần tải đầu) và dọn nó trước khi thân trang bị thay
+  // (đóng SSE, gỡ listener trên document), để không theo dõi run hay gắn listener chồng lên nhau.
+  function mountBench(root: HTMLElement): () => void {
+    const command = root.dataset.command!;
+    const view = TASK_VIEWS[command];
+    if (!view) throw new Error(`Lệnh "${command}" chưa có view trong src/lib/lab/views/index.ts`);
+    const hints = (fieldHints as Record<string, FieldHints>)[command];
+    const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+    const fields = $("bench-fields");
+    const formError = $("bench-form-error");
+    const runButton = $<HTMLButtonElement>("bench-run");
+    const cancelButton = $<HTMLButtonElement>("bench-cancel");
+    const runCount = $("bench-run-count");
+    const picker = $<HTMLButtonElement>("bench-picker");
+    const pickerLabel = $("bench-picker-label");
+    const history = $("bench-history");
+    const stateBadge = $("bench-state");
+    const timing = $("bench-timing");
+    const progress = $<HTMLProgressElement>("bench-progress");
+    const runError = $("bench-run-error");
+    const empty = $("bench-empty");
+    const resultSlot = $("bench-result");
+    const rerun = $("bench-rerun");
+    const rerunCommand = $("bench-rerun-command");
+    const rerunCopy = $<HTMLButtonElement>("bench-rerun-copy");
+    const confirmDialog = $<HTMLDialogElement>("bench-confirm");
+    const confirmText = $("bench-confirm-text");
+
+    let form: Control | null = null;
+    let runs: RunSummary[] = [];
+    let currentRunId: string | null = null;
+    let stopWatching: (() => void) | null = null;
+    let fillRecord: ((record: Spec) => void) | null = null;
+    // Đặt khi rời trang: việc async còn dở (fetch, SSE) không mở thêm gì cho trang đã bị thay.
+    let disposed = false;
+    // Gỡ listener gắn trên document khi rời trang.
+    const detach = new AbortController();
+
+    runButton.disabled = true;
+    cancelButton.hidden = true;
+
+    function showError(element: HTMLElement, message: string | null) {
+      element.textContent = message ?? "";
+      element.hidden = message === null;
+    }
+
+    const isActive = (state: RunState) => ACTIVE_STATES.includes(state);
+
+    function runTitle(runId: string): string {
+      const match = RUN_ID_PATTERN.exec(runId);
+      return match ? `${match[3]}/${match[2]} ${match[4]}:${match[5]}` : runId;
+    }
+
+    // ----- Control center -----
+
+    function updateRunCount() {
+      try {
+        runCount.textContent = view.workload(form!.read() as Spec);
+      } catch (error) {
+        if (!(error instanceof FormError)) throw error;
+        runCount.textContent = "Chưa hợp lệ";
+      }
+    }
+
+    function confirmRun(spec: Spec): Promise<boolean> {
+      confirmText.textContent = `${view.confirmText(spec)} Mỗi lúc chỉ một lệnh chạy; lệnh khác sẽ xếp hàng.`;
+      confirmDialog.showModal();
+      return new Promise(resolve => {
+        confirmDialog.addEventListener("close", () => resolve(confirmDialog.returnValue === "run"), { once: true });
+      });
+    }
+
+    $("bench-confirm-run").addEventListener("click", () => confirmDialog.close("run"));
+    $("bench-confirm-cancel").addEventListener("click", () => confirmDialog.close("cancel"));
+
+    runButton.addEventListener("click", async () => {
+      showError(formError, null);
+      let spec: Spec;
+      try {
+        spec = form!.read() as Spec;
+      } catch (error) {
+        if (!(error instanceof FormError)) throw error;
+        showError(formError, error.message);
+        return;
+      }
+      if (!(await confirmRun(spec))) return;
+      try {
+        const runId = await submitJob(command, spec);
+        window.dispatchEvent(new CustomEvent("workbench:job-submitted"));
+        await refreshHistory();
+        await openRun(runId);
+      } catch (error) {
+        if (!(error instanceof RequestError)) throw error;
+        showError(formError, error.message);
+      }
+    });
+
+    cancelButton.addEventListener("click", async () => {
+      if (!currentRunId) return;
+      cancelButton.disabled = true;
+      try {
+        await cancelJob(command, currentRunId);
+      } catch (error) {
+        if (!(error instanceof RequestError)) throw error;
+        showError(runError, error.message);
+      } finally {
+        cancelButton.disabled = false;
+      }
+    });
+
+    // ----- Chọn lần chạy -----
+
+    function setPicker(open: boolean) {
+      history.hidden = !open;
+      picker.setAttribute("aria-expanded", String(open));
+      if (open) history.querySelector<HTMLElement>("[aria-selected='true'], [role='option']")?.focus();
+    }
+
+    function historyItem(run: RunSummary): HTMLLIElement {
+      const item = document.createElement("li");
+      item.setAttribute("role", "option");
+      item.tabIndex = -1;
+      item.setAttribute("aria-selected", String(run.run_id === currentRunId));
+      const title = document.createElement("span");
+      title.className = "run-menu-title";
+      title.textContent = runTitle(run.run_id);
+      const summary = document.createElement("span");
+      summary.className = "t-caption";
+      summary.textContent = view.summary(run.config);
+      const state = document.createElement("span");
+      state.className = "lab-state";
+      state.dataset.state = run.state;
+      state.textContent = STATE_LABELS[run.state];
+      item.append(title, summary, state);
+      const choose = () => {
+        setPicker(false);
+        picker.focus();
+        void openRun(run.run_id);
+      };
+      item.addEventListener("click", choose);
+      item.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          choose();
+        } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const sibling = event.key === "ArrowDown" ? item.nextElementSibling : item.previousElementSibling;
+          (sibling as HTMLElement | null)?.focus();
+        }
+      });
+      return item;
+    }
+
+    async function refreshHistory() {
+      runs = await listRuns(command);
+      if (runs.length === 0) {
+        const none = document.createElement("li");
+        none.className = "t-caption run-menu-empty";
+        none.textContent = `Chưa có lần chạy nào trong runs/${command}/.`;
+        history.replaceChildren(none);
+      } else {
+        history.replaceChildren(...runs.map(historyItem));
+      }
+    }
+
+    picker.addEventListener("click", () => setPicker(history.hidden));
+    history.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        setPicker(false);
+        picker.focus();
+      }
+    });
+    document.addEventListener("click", event => {
+      if (!history.hidden && !(event.target as Element).closest(".run-picker")) setPicker(false);
+    }, { signal: detach.signal });
+
+    // ----- Vùng kết quả -----
+
+    function setState(state: RunState) {
+      stateBadge.hidden = false;
+      stateBadge.textContent = STATE_LABELS[state];
+      stateBadge.dataset.state = state;
+      cancelButton.hidden = !isActive(state);
+      progress.hidden = !isActive(state);
+    }
+
+    function failureText(detail: RunDetail): string | null {
+      if (detail.state !== "failed") return null;
+      const failed = detail.events.findLast(event => event.kind === "failed");
+      if (failed) return String(failed.error);
+      return detail.stderr.slice(-STDERR_SHOWN_LINES).join("\n") || "Lệnh lab thất bại.";
+    }
+
+    function renderRun(detail: RunDetail) {
+      setState(detail.state);
+      pickerLabel.textContent = `${runTitle(detail.run_id)} · ${view.label(detail.config)}`;
+      for (const item of history.querySelectorAll("[role='option']")) item.setAttribute("aria-selected", "false");
+      const index = runs.findIndex(run => run.run_id === detail.run_id);
+      history.children[index]?.setAttribute("aria-selected", "true");
+      timing.textContent = detail.result ? view.timing(detail.result) : view.summary(detail.config);
+      showError(runError, failureText(detail));
+      empty.hidden = true;
+      fillRecord = view.render(detail, resultSlot);
+      // Có sự kiện nghĩa là lab đã tạo thư mục run, nên đã có resolved_config.yaml để chạy lại đúng như cũ.
+      rerun.hidden = detail.events.length === 0;
+      rerunCommand.textContent = `python -m foundation_lab ${command} runs/${command}/${detail.run_id}/resolved_config.yaml`;
+    }
+
+    function onEvent(runId: string, event: LabEvent) {
+      if (runId !== currentRunId) return;
+      if (event.kind === "started" || event.kind === "progress") {
+        progress.max = Number(event.total);
+        progress.value = Number(event.done ?? 0);
+        timing.textContent = `${progress.value}/${progress.max} ${view.progressUnit}`;
+      } else if (event.kind === "record") {
+        fillRecord?.(event.record as Spec);
+      } else if (event.kind === "failed") {
+        showError(runError, String(event.error));
+      }
+    }
+
+    async function openRun(runId: string) {
+      if (disposed) return;
+      stopWatching?.();
+      stopWatching = null;
+      currentRunId = runId;
+      try {
+        const detail = await getRun(command, runId);
+        if (disposed || runId !== currentRunId) return;
+        renderRun(detail);
+        if (isActive(detail.state)) {
+          stopWatching = watchRun(command, runId, event => onEvent(runId, event), () => {
+            if (runId !== currentRunId) return;
+            void refreshHistory().then(() => openRun(runId));
+          });
+        }
+      } catch (error) {
+        if (!(error instanceof RequestError)) throw error;
+        showError(runError, error.message);
+      }
+    }
+
+    rerunCopy.addEventListener("click", () => void copyToClipboard(rerunCopy, rerunCommand.textContent ?? ""));
+
+    async function init() {
+      try {
+        const [description, initial] = await Promise.all([fetchDescription(), view.loadInitial?.() ?? Promise.resolve({})]);
+        if (disposed) return;
+        if (description.format_version !== DESCRIBE_FORMAT_VERSION) {
+          throw new RequestError(`Lab mô tả theo định dạng ${description.format_version}, trang này hiểu ${DESCRIBE_FORMAT_VERSION}. Build lại web.`);
+        }
+        const spec = description.commands[command]?.spec;
+        if (!spec) throw new RequestError(`Lab không có lệnh "${command}".`);
+        form = objectControl("", spec, hints, description, initial);
+        fields.replaceChildren(form.element);
+        view.decorateForm?.(form, fields, initial, message => showError(formError, message));
+        fields.addEventListener("input", updateRunCount);
+        fields.addEventListener("change", updateRunCount);
+        updateRunCount();
+        runButton.disabled = false;
+        await refreshHistory();
+        if (runs.length > 0) await openRun(runs[0].run_id);
+      } catch (error) {
+        if (!(error instanceof RequestError)) throw error;
+        fields.replaceChildren();
+        showError(formError, error.message);
+      }
+    }
+
+    void init();
+
+    return () => {
+      disposed = true;
+      stopWatching?.();
+      stopWatching = null;
+      detach.abort();
+    };
+  }
+
+  let unmount: (() => void) | null = null;
+  document.addEventListener("astro:page-load", () => {
+    const root = document.getElementById("bench");
+    if (root) unmount = mountBench(root);
+  });
+  document.addEventListener("astro:before-swap", () => {
+    unmount?.();
+    unmount = null;
+  });
+</script>

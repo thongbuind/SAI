@@ -1,6 +1,6 @@
 // Một mã nguồn, hai bản deploy. Chọn bản bằng PUBLIC_DEPLOY_TARGET lúc build:
 // - static: GitHub Pages, chạy dưới BASE_PATH (vd. /SAI), trang /try/ là hướng dẫn tải mô hình.
-// - server: FastAPI phục vụ ở gốc /, trang /try/ là chat, có thêm bàn thử nghiệm /lab/workbench/<phòng>/ (nút bấm
+// - server: FastAPI phục vụ ở gốc /, trang /try/ là chat, có thêm phòng làm việc /lab/workbench/<phòng>/ (nút bấm
 //   chạy được khi server bật --lab). Khi chạy dev:server, /api chuyển tới FastAPI (python -m web) để frontend và
 //   API cùng origin như lúc deploy.
 import { fileURLToPath } from "node:url";
@@ -20,7 +20,7 @@ if (target === "static" && !process.env.BASE_PATH) {
   throw new Error("Bản static cần BASE_PATH (vd. /SAI) vì GitHub Pages phục vụ web dưới tên repo");
 }
 
-// Bàn thử nghiệm chỉ có ở bản server: route được đăng ký ở đây thay vì đặt trong src/pages, vì Astro gom JS/CSS của
+// Phòng làm việc chỉ có ở bản server: route được đăng ký ở đây thay vì đặt trong src/pages, vì Astro gom JS/CSS của
 // mọi trang trong src/pages vào bản build kể cả khi getStaticPaths không trả trang nào.
 const WORKBENCH_ROUTE = {
   name: "sai-lab-workbench",

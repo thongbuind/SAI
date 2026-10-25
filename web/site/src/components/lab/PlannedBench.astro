@@ -1,0 +1,21 @@
+---
+// Trang chờ của một phòng chưa có lệnh chạy được từ web, trong khung WorkbenchPage thay cho TaskBench. Slot mặc định là
+// phần đầu trang (breadcrumb, tiêu đề) như TaskBench, bên dưới là khối báo phòng đang được xây dựng kèm việc trang sẽ
+// làm khi xong. Không có control center: WorkbenchPage gắn data-planned để bỏ cột đó (styles/lab.css).
+interface Props {
+  // Lệnh foundation_lab dự kiến của phòng; null khi phòng không cần lệnh riêng (vd. Lưu trữ đọc thẳng runs/).
+  planned: string | null;
+}
+const { planned } = Astro.props;
+---
+<section class="wb-stage">
+  <slot />
+  <div class="stage-empty">
+    <p class="t-h4">Phòng đang được xây dựng</p>
+    {planned === null ? (
+      <p class="t-small">Phòng này chưa dùng được. Khi xong, trang sẽ đọc thẳng thư mục <code>runs/</code> trên máy này, không cần lệnh riêng.</p>
+    ) : (
+      <p class="t-small">Phòng này chưa dùng được. Khi xong, trang sẽ gọi lệnh <code>python -m foundation_lab {planned}</code> trên máy này.</p>
+    )}
+  </div>
+</section>

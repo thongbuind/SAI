@@ -1,0 +1,68 @@
+---
+// Khung chat mẫu ở trang chủ: tin của người dùng, chấm "đang gõ" rồi câu trả lời hiện dần khi khung cuộn vào màn hình.
+// Nội dung cố định, không gọi máy chủ, nên dùng được ở cả hai bản deploy.
+interface Props {
+  question: string;
+  answer: string;
+}
+const { question, answer } = Astro.props;
+---
+<div class="chat-preview glass-panel" data-chat-preview>
+  <p class="bubble bubble-user bubble-sm">{question}</p>
+  <!-- Trình đọc màn hình đọc thẳng câu trả lời; phần chấm gõ và chữ hiện dần chỉ để nhìn. -->
+  <p class="sr-only">{answer}</p>
+  <div class="bubble bubble-ai bubble-sm typing" aria-hidden="true"><span class="typing-dots"><i></i><i></i><i></i></span></div>
+  <p class="bubble bubble-ai bubble-sm" aria-hidden="true" data-answer={answer} hidden></p>
+</div>
+
+<style>
+  /* Bong bóng dùng recipe chung trong base.css (.bubble-*); ở đây chỉ có khung và cách xếp. */
+  .chat-preview { position: relative; display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); min-height: 300px; padding: var(--space-6); overflow: hidden; border-radius: var(--radius-panel); border: 1px solid var(--border-default); background: var(--surface-base); box-shadow: var(--elevation-2); }
+  .chat-preview::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--gradient-accent-line); }
+  .bubble { max-width: 82%; }
+  .bubble-user { align-self: flex-end; }
+  .bubble-ai { align-self: flex-start; }
+  .typing { padding-block: var(--space-3); }
+</style>
+
+<script>
+  const TYPING_MS = 1800;        // thời gian hiện chấm "đang gõ" trước khi trả lời
+  const TYPE_INTERVAL_MS = 18;   // nhịp hiện từng ký tự của câu trả lời
+  const VISIBLE_RATIO = 0.5;     // bắt đầu khi nửa khung đã vào màn hình
+  const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  document.querySelectorAll<HTMLElement>("[data-chat-preview]").forEach(preview => {
+    const typing = preview.querySelector<HTMLElement>(".typing")!;
+    const bubble = preview.querySelector<HTMLElement>("[data-answer]")!;
+    const answer = bubble.dataset.answer!;
+
+    const showAnswer = () => {
+      typing.hidden = true;
+      bubble.hidden = false;
+    };
+
+    if (REDUCED_MOTION) {
+      bubble.textContent = answer;
+      showAnswer();
+      return;
+    }
+
+    const play = () => {
+      setTimeout(() => {
+        showAnswer();
+        let shown = 0;
+        const timer = setInterval(() => {
+          bubble.textContent = answer.slice(0, ++shown);
+          if (shown >= answer.length) clearInterval(timer);
+        }, TYPE_INTERVAL_MS);
+      }, TYPING_MS);
+    };
+
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer.disconnect();
+      play();
+    }, { threshold: VISIBLE_RATIO });
+    observer.observe(preview);
+  });
+</script>
