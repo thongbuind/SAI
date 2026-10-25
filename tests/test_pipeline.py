@@ -12,6 +12,7 @@ from foundation_lab.engine.runtime import Runtime
 from foundation_lab.core.experiment import RuntimeSpec
 from foundation_lab.engine.step import accumulate_lm_gradients, optimizer_step
 from foundation_lab.objectives import chunked_lm_loss
+from foundation_lab.paths import PROJECT_ROOT, TOKENIZER_MODEL, project_relative_path
 from foundation_lab.pipeline import run_experiment
 from foundation_lab.state.lineage import collect_lineage
 from foundation_lab.state.metrics import MetricsLogger
@@ -158,3 +159,18 @@ def test_tiny_data_fit():
 
 def test_lineage_records_lab_version():
     assert collect_lineage("hash", {})["lab_version"] == foundation_lab.__version__
+
+def test_project_relative_path_drops_machine_prefix_only_inside_project(tmp_path):
+    assert project_relative_path(PROJECT_ROOT / "model" / "sft1_35M.pt") == "model/sft1_35M.pt"
+    assert project_relative_path(str(PROJECT_ROOT / "runs")) == "runs"
+    # Ngoài dự án, vốn tương đối hoặc không phải đường dẫn (tham số CLI): giữ nguyên.
+    assert project_relative_path(tmp_path / "x.pt") == str(tmp_path / "x.pt")
+    assert project_relative_path("compare-kernel") == "compare-kernel"
+    assert project_relative_path("-") == "-"
+
+def test_lineage_paths_are_project_relative(tmp_path):
+    outside = tmp_path / "shard.bin"
+    outside.write_bytes(b"x")
+    lineage = collect_lineage("hash", {"pretrain": [PROJECT_ROOT / "model" / "missing.pt", outside]})
+    assert lineage["tokenizer"]["path"] == TOKENIZER_MODEL.relative_to(PROJECT_ROOT).as_posix()
+    assert [item["path"] for item in lineage["data"]["pretrain"]] == ["model/missing.pt", str(outside)]

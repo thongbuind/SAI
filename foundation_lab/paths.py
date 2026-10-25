@@ -22,3 +22,11 @@ def resolve_project_path(path) -> Path:
     """Đường dẫn tuyệt đối giữ nguyên; đường dẫn tương đối được nối vào PROJECT_ROOT."""
     path = Path(path)
     return path if path.is_absolute() else PROJECT_ROOT / path
+
+def project_relative_path(path: str | Path) -> str:
+    """Đường dẫn để ghi vào thư mục run: file trong dự án ghi tương đối theo PROJECT_ROOT (posix), để run không mang
+    đường dẫn riêng của máy và so được giữa các máy; đường dẫn ngoài dự án hoặc vốn đã tương đối giữ nguyên."""
+    absolute = Path(path)
+    if absolute.is_absolute() and absolute.is_relative_to(PROJECT_ROOT):
+        return absolute.relative_to(PROJECT_ROOT).as_posix()
+    return str(path)

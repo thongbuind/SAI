@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 import torch
 from foundation_lab import __version__ as LAB_VERSION
-from foundation_lab.paths import PROJECT_ROOT, TOKENIZER_MODEL
+from foundation_lab.paths import PROJECT_ROOT, TOKENIZER_MODEL, project_relative_path
 
 def _git(*args) -> str | None:
     try:
@@ -28,12 +28,15 @@ def sha256_file(path, chunk_size: int = 1 << 20) -> str:
     return digest.hexdigest()
 
 def file_fingerprint(path: Path, hash_limit_bytes: int = 16 << 20) -> dict:
-    """Dấu vân tay rẻ cho file dữ liệu: kích thước + mtime; chỉ băm nội dung với file nhỏ (manifest...)."""
+    """Dấu vân tay rẻ cho file dữ liệu: kích thước + mtime; chỉ băm nội dung với file nhỏ (manifest...).
+
+    ``path`` trong kết quả tương đối theo gốc dự án nếu file nằm trong dự án (project_relative_path).
+    """
     path = Path(path)
     if not path.exists():
-        return {"path": str(path), "exists": False}
+        return {"path": project_relative_path(path), "exists": False}
     stat = path.stat()
-    info = {"path": str(path), "exists": True, "bytes": stat.st_size, "mtime": stat.st_mtime}
+    info = {"path": project_relative_path(path), "exists": True, "bytes": stat.st_size, "mtime": stat.st_mtime}
     if stat.st_size <= hash_limit_bytes:
         info["sha256"] = sha256_file(path)
     return info

@@ -43,6 +43,13 @@ def _parse_init(values) -> dict:
         result[stage.strip()] = path.strip()
     return result
 
+def _recorded_argv() -> list[str]:
+    """argv ghi vào invocations.jsonl. ``python -m`` đặt argv[0] là đường dẫn tuyệt đối của __main__.py, web truyền
+    --runs-root tuyệt đối: đổi các đường dẫn trong dự án thành tương đối để run không mang đường dẫn của máy."""
+    from foundation_lab.paths import project_relative_path
+
+    return [project_relative_path(arg) for arg in sys.argv]
+
 def cmd_run(args):
     from foundation_lab.core.config import config_hash
     from foundation_lab.core.experiment import resolve_experiment, validate_experiment
@@ -69,7 +76,7 @@ def cmd_run(args):
         print(f"Run dir: {run_dir.path}  (config_hash {digest[:12]})")
     # lineage.json chỉ ghi lúc tạo run; ghi git của từng lần gọi để biết code nào đã chạy khi --resume.
     run_dir.append_invocation({
-        "argv": sys.argv, "stages": stages, "init": init_overrides, "resume": bool(args.resume),
+        "argv": _recorded_argv(), "stages": stages, "init": init_overrides, "resume": bool(args.resume),
         "config_hash": config_hash(resolved), "git": git_info(),
     })
     run_experiment(resolved, run_dir, stages=stages, init_overrides=init_overrides, resume=bool(args.resume))
@@ -143,7 +150,7 @@ def cmd_task(args):
     run_dir = RunDir.create(args.command, root=args.runs_root, run_id=args.run_id)
     digest = run_dir.write_config(resolved)
     run_dir.write_json("lineage.json", collect_lineage(digest, task.inputs(spec)))
-    run_dir.append_invocation({"argv": sys.argv, "config_hash": digest, "git": git_info()})
+    run_dir.append_invocation({"argv": _recorded_argv(), "config_hash": digest, "git": git_info()})
     print(f"Run dir: {run_dir.path}  (config_hash {digest[:12]})")
 
     events = EventLog(run_dir.events_path)
